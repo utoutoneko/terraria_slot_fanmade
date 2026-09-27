@@ -1,23 +1,53 @@
 const AUD = {};
 Object.entries(AUDIO_SRC).forEach(([k,src])=>{ const a=new Audio(src); a.preload="auto"; AUD[k]=a; });
+let actx=null;
+function ac(){ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); return actx; }
+// Decoded Web Audio buffers, keyed the same as AUDIO_SRC/AUD. A cloneNode()+play() HTMLAudioElement
+// has to re-decode the OGG payload on every single call, which adds tens-to-hundreds of ms of
+// unpredictable latency between a game event (reel stop, win reveal) and the sound actually starting.
+// Decoding once into an AudioBuffer up front lets playback start at sample-accurate time via
+// AudioBufferSourceNode.start(0), which is effectively latency-free. AUD/cloneNode stays only as a
+// fallback for the brief window (a few ms) before decoding finishes on page load.
+const SFX_BUFFERS = {};
+function base64ToArrayBuffer(dataUri){
+  const base64 = dataUri.slice(dataUri.indexOf(",")+1);
+  const bin = atob(base64);
+  const bytes = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+  return bytes.buffer;
+}
+(function decodeAllSfx(){
+  const ctx = ac();
+  Object.entries(AUDIO_SRC).forEach(([k,src])=>{
+    ctx.decodeAudioData(base64ToArrayBuffer(src), buf=>{ SFX_BUFFERS[k]=buf; }, ()=>{});
+  });
+})();
 let audioUnlocked=false;
 function unlockAudio(){
   if(audioUnlocked) return; audioUnlocked=true;
   // Play-and-immediately-pause every sample once, synchronously inside the user gesture,
   // so later play() calls from setTimeout callbacks are not blocked by autoplay policy.
   Object.values(AUD).forEach(a=>{ a.volume=0; const p=a.play(); if(p&&p.catch) p.then(()=>{a.pause();a.currentTime=0;a.volume=0.7;}).catch(()=>{}); });
-  try{ ac(); if(actx && actx.state==="suspended") actx.resume(); }catch(e){}
+  try{ if(actx && actx.state==="suspended") actx.resume(); }catch(e){}
   document.removeEventListener("pointerdown", unlockAudio);
 }
 document.addEventListener("pointerdown", unlockAudio, {once:true});
 function playReal(key, vol){
   if(!state.sound) return;
+  const v = vol!=null?vol:0.7;
+  const buf = SFX_BUFFERS[key];
+  if(buf){
+    const ctx = ac();
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const gain = ctx.createGain(); gain.gain.value = v;
+    src.connect(gain); gain.connect(ctx.destination);
+    src.start(0);
+    return;
+  }
   const base = AUD[key]; if(!base) return;
-  const a = base.cloneNode(); a.volume = vol!=null?vol:0.7;
+  const a = base.cloneNode(); a.volume = v;
   a.play().catch(()=>{});
 }
-let actx=null;
-function ac(){ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); return actx; }
 function beep(freq,dur,type,vol,delay){ if(!state.sound) return; const ctx=ac(); const t0=ctx.currentTime+(delay||0);
   const osc=ctx.createOscillator(); const gain=ctx.createGain(); osc.type=type||"square"; osc.frequency.setValueAtTime(freq,t0);
   gain.gain.setValueAtTime(0.0001,t0); gain.gain.exponentialRampToValueAtTime(vol||0.15,t0+0.015); gain.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
