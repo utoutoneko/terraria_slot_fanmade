@@ -61,6 +61,7 @@ function sfxGrab(){ playReal("grab",0.6); }
 function sfxBigReveal(){ playReal("reveal",0.7); setTimeout(()=>playReal("doorOpen",0.5),80); }
 function sfxJackpot(){ playReal("reveal",0.8); setTimeout(()=>playReal("doorOpen",0.6),100); [0,1,2,3].forEach((i)=>beep(660+i*140,0.16,"square",0.1,0.2+i*0.09)); }
 function sfxDig(){ playReal("dig",0.6); }
+function sfxGhostCatch(){ playReal("ghostCatch",0.6); }
 
 /* ================= rendering ================= */
 const JACKPOT_FEED_RATE = 0.03;      // 3% of every paid bet feeds the mystery pot
@@ -557,7 +558,7 @@ function tryCatchGhosts(){
   });
 }
 function catchGhost(g){
-  g.caught=true; g.el.classList.add("caught"); sfxGrab();
+  g.caught=true; g.el.classList.add("caught"); sfxGhostCatch();
   state.totalGhosts=(state.totalGhosts||0)+1;
   const roll=Math.random(); let gain;
   if(roll<0.55) gain=8+Math.floor(Math.random()*40);
