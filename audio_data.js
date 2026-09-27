@@ -27,6 +27,9 @@ document.getElementById("digPickIcon").src = SPR.icon_pickaxe;
 
 document.getElementById("dirtTex").style.backgroundImage = `url(${SPR.wall_dirt})`;
 document.getElementById("stoneTex").style.backgroundImage = `url(${SPR.wall_stone})`;
+document.getElementById("bioCorrupt").style.backgroundImage = `url(${SPR.wall_corrupt})`;
+document.getElementById("bioCrimson").style.backgroundImage = `url(${SPR.wall_crimson})`;
+document.getElementById("bioHallow").style.backgroundImage = `url(${SPR.wall_hallow})`;
 document.getElementById("reelwindow").style.setProperty('--wall-img', `url(${SPR.wall_stone})`);
 document.getElementById("bioCorrupt").style.backgroundImage = `url(${SPR.wall_corrupt})`;
 document.getElementById("bioCrimson").style.backgroundImage = `url(${SPR.wall_crimson})`;
