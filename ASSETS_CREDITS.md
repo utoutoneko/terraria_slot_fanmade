@@ -23,8 +23,17 @@
   - 取得元: https://terraria.wiki.gg/wiki/File:Traveling_Merchant.png (Terraria Wiki)
 - `icon_hermesboots`(ショップのターボスピン権利証アイコン): Terraria本編アイテム「ヘルメスブーツ」画像
   - 取得元: https://terraria.wiki.gg/wiki/File:Hermes_Boots.png (Terraria Wiki)
+- `icon_achguide`(ショップの実績攻略本アイコン): Terraria本編の設置アイテム「本(Book)」画像
+  - 取得元: https://terraria.wiki.gg/wiki/File:Book.png (Terraria Wiki)
 
 ## 音源
 - `ghostCatch`(幽霊退治ミニゲームの捕獲音): Terraria本編の効果音「NPC_Killed_1.wav」
   - 取得元: https://terraria.wiki.gg/wiki/File:NPC_Killed_1.wav (Terraria Wiki, terraria.wiki.gg)
   - 加工: モノラル化・22050Hzへダウンサンプリングして軽量化(元60KB→約15KB)、`audio_data.js`に`ghostCatch`として埋め込み
+- `zombie_growl`(ゾンビスロットの絵柄そろい音): Terraria本編のゾンビの鳴き声「Zombie_0.wav」
+  - 取得元: https://terraria.wiki.gg/wiki/File:Zombie_0.wav (Terraria Wiki)
+  - 加工: モノラル化・22050Hzへダウンサンプリング(元226KB→約55KB)
+- `zenith_swing`(ゼニススロットの絵柄そろい音): Terraria本編の武器振り音「Item_4.wav」
+  - 取得元: https://terraria.wiki.gg/wiki/File:Item_4.wav (Terraria Wiki)
+  - 加工: モノラル化・22050Hzへダウンサンプリング(元109KB→約27KB)
+- スライムスロットの絵柄そろい音: 専用のスライム鳴き声はWiki上にファイル名として個別登録されていなかった(通常のスライムはNPCインフォボックスに固有音の記載がなく、汎用音を使い回している模様)ため、**既存の`grab`音源を流用**して他テーマと差別化(新規取得はしていない)

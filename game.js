@@ -55,7 +55,15 @@ function beep(freq,dur,type,vol,delay){ if(!state.sound) return; const ctx=ac();
 function sfxTick(){ playReal("hit", 0.12); }
 function sfxStop(){ playReal("hit",0.5); }
 function sfxCoin(pitchMul){ const key=["coin0","coin1","coin2"][Math.floor(Math.random()*3)]; playReal(key, 0.55*(pitchMul||1)); }
-function sfxPop(){ playReal("unlock",0.55); }
+// Themed win-reveal sound per active theme (Terraria Wiki sourced for zombie/zenith; slime
+// reuses the existing "grab" sound - a genuinely slime-specific effect wasn't separately filed
+// on the wiki, see ASSETS_CREDITS.md/DEVLOG.md for the detail). Mimic keeps its original sound.
+function sfxPop(){
+  if(state.activeTheme==="zombie") playReal("zombie_growl",0.5);
+  else if(state.activeTheme==="zenith") playReal("zenith_swing",0.55);
+  else if(state.activeTheme==="slime") playReal("grab",0.5);
+  else playReal("unlock",0.55);
+}
 function sfxChestCreak(){ playReal("doorOpen",0.6); }
 function sfxGrab(){ playReal("grab",0.6); }
 function sfxBigReveal(){ playReal("reveal",0.7); setTimeout(()=>playReal("doorOpen",0.5),80); }
@@ -76,7 +84,7 @@ const KAKU_SPINS = 5;      // bonus mode length (spins)
 const KAKU_MULT = 1.5;     // payout multiplier during bonus mode
 const PITY_LIMIT = 100;    // paid spins without bonus mode before it is forced ("tenjou")
 const KAKU_STREAK_TRIGGER = 3;
-const ZENITH_ASSEMBLE_MULT = 3000; // flat bet multiplier when all 9 Zenith swords land at once
+const ZENITH_ASSEMBLE_MULT = 9400; // flat bet multiplier when all 9 Zenith swords land at once
 
 // Restored from state (not just defaulted to 0) so an in-progress bonus round, free-spin streak
 // or bottle buff survives a tab refresh instead of silently vanishing - saveState() below keeps
@@ -416,6 +424,17 @@ function tryUnlockTheme(themeId){
   const def = THEME_DEFS[themeId]; if(!def) return;
   if(!state.themeUnlocked) state.themeUnlocked = {mimic:true};
   if(state.themeUnlocked[themeId]){ switchTheme(themeId); document.getElementById("themeModal").classList.remove("show"); return; }
+  // Unlock order is a straight line (see THEME_ORDER) - the previous theme in the sequence must
+  // already be unlocked before this one can be bought, even if the player has enough medals.
+  const idx = THEME_ORDER.indexOf(themeId);
+  const prevId = idx>0 ? THEME_ORDER[idx-1] : null;
+  if(prevId && !state.themeUnlocked[prevId]){
+    const prevDef = THEME_DEFS[prevId];
+    showToast(state.lang==="en"
+      ? `Unlock ${prevDef.nameEn} first`
+      : `先に${prevDef.nameJa}スロットを解禁してください`);
+    return;
+  }
   if((state.defenderMedals||0) < def.unlockCost){
     showToast(state.lang==="en"
       ? `Need ${def.unlockCost} Defender Medals to unlock ${def.nameEn} (you have ${state.defenderMedals||0})`
@@ -444,13 +463,17 @@ function updateThemeBtnVisibility(){
 }
 function renderThemeGrid(){
   if(!state.themeUnlocked) state.themeUnlocked = {mimic:true};
-  THEME_ORDER.forEach(id=>{
+  THEME_ORDER.forEach((id,idx)=>{
     const btn = document.getElementById("theme_"+id); if(!btn) return;
     const def = THEME_DEFS[id];
     const unlocked = !!state.themeUnlocked[id];
+    const prevId = idx>0 ? THEME_ORDER[idx-1] : null;
+    const prevLocked = prevId && !state.themeUnlocked[prevId];
     btn.classList.toggle("active", state.activeTheme===id);
     btn.classList.toggle("locked", !unlocked);
-    btn.title = unlocked ? def.nameEn : `${def.nameEn} - ${def.unlockCost} Defender Medals to unlock`;
+    if(unlocked) btn.title = def.nameEn;
+    else if(prevLocked) btn.title = `${def.nameEn} - unlock ${THEME_DEFS[prevId].nameEn} first`;
+    else btn.title = `${def.nameEn} - ${def.unlockCost} Defender Medals to unlock`;
   });
 }
 THEME_ORDER.forEach(id=>{
@@ -458,38 +481,40 @@ THEME_ORDER.forEach(id=>{
   if(btn) btn.onclick=()=>tryUnlockTheme(id);
 });
 
-// Traveling Merchant's shop: spend Defender Medals on QoL/power-up items. Prices, effects and
-// balance here are a first pass (README/DEVLOG note this is the one open design call the
-// project owner left up to Claude) - kept intentionally modest relative to the game's already
-// very high RTP so they read as fun conveniences rather than something that further destabilizes
-// the economy.
+// Traveling Merchant's shop: spend Defender Medals on QoL/power-up items. Prices scaled up
+// (2026-09-27) to sit sensibly below the new, much steeper theme-unlock costs (slime5/zombie20/
+// zenith50) instead of overlapping them - see DEVLOG.md.
 const SHOP_ITEMS = [
   { key:"autospin", nameJa:"オートスピン権利証", nameEn:"Auto-Spin Pass",
     descJa:"累計スピン数に関係なく自動スピンをすぐ解禁する(1回限り)", descEn:"Unlocks auto-spin immediately, skipping the 100-spin requirement (one-time)",
-    cost:2, iconKey:"deco_stressball", type:"once",
+    cost:15, iconKey:"deco_stressball", type:"once",
     ownedCheck:()=>!!state.autoSpinForceUnlocked, buy:()=>{ state.autoSpinForceUnlocked=true; updateAutoSpinUI(); } },
   { key:"superbottle", nameJa:"プレミアムボトル", nameEn:"Premium Bottle",
     descJa:"使うと5スピンの間、配当が3倍になる(通常の瓶は2倍)。何個でも購入可", descEn:"Grants 3x payouts for 5 spins when used (regular bottles give 2x). Stackable",
-    cost:1, iconKey:"deco_bottle", type:"consumable",
+    cost:3, iconKey:"deco_bottle", type:"consumable",
     countFn:()=>state.superBottles||0, buy:()=>{ state.superBottles=(state.superBottles||0)+1; renderBottleUI(); } },
   { key:"turbo", nameJa:"ターボスピン権利証", nameEn:"Turbo Spin Pass",
     descJa:"リールが止まるまでの時間を短縮する。購入後はいつでもON/OFF切り替え可能", descEn:"Shortens how long the reels take to stop. Toggle on/off anytime once purchased",
-    cost:3, iconKey:"icon_hermesboots", type:"toggle",
+    cost:20, iconKey:"icon_hermesboots", type:"toggle",
     ownedCheck:()=>!!state.turboUnlocked, buy:()=>{ state.turboUnlocked=true; state.turboEnabled=true; },
     isOn:()=>!!state.turboEnabled, toggle:()=>{ state.turboEnabled=!state.turboEnabled; } },
   { key:"digpermit", nameJa:"発掘免許皆伝", nameEn:"Excavation Permit",
     descJa:"発掘・幽霊退治ミニゲームのクールダウンを25秒→15秒に短縮する(1回限り、永続)", descEn:"Shortens both the Dig and Ghost Hunt minigame cooldowns from 25s to 15s (one-time, permanent)",
-    cost:2, iconKey:"icon_pickaxe", type:"once",
+    cost:10, iconKey:"icon_pickaxe", type:"once",
     ownedCheck:()=>!!state.digGhostFastCooldown, buy:()=>{ state.digGhostFastCooldown=true; } },
   { key:"mimicpet", nameJa:"相棒のミミック", nameEn:"Mimic Companion",
     descJa:"画面についてくる小さなミミックの相棒(見た目のみ)。購入後はいつでもON/OFF切り替え可能", descEn:"A small mimic companion that tags along on screen (cosmetic only). Toggle on/off anytime once purchased",
-    cost:1, iconKey:"mimic_wood", type:"toggle",
+    cost:5, iconKey:"mimic_wood", type:"toggle",
     ownedCheck:()=>!!state.mimicPetOwned, buy:()=>{ state.mimicPetOwned=true; state.mimicPetOn=true; updateMimicPetVisibility(); },
     isOn:()=>!!state.mimicPetOn, toggle:()=>{ state.mimicPetOn=!state.mimicPetOn; updateMimicPetVisibility(); } },
   { key:"luckycoin", nameJa:"ラッキーコイン", nameEn:"Lucky Coin",
     descJa:"ミステリーポットへの積立率を3%→4%に上げる(1回限り、永続。当選確率や還元率自体は変わらず、貯まる速さとポットの大きさだけ変わる)", descEn:"Raises the Mystery Pot feed rate from 3% to 4% (one-time, permanent - doesn't change overall odds/RTP, just how fast the pool grows)",
-    cost:2, iconKey:"coin_gold", type:"once",
+    cost:8, iconKey:"coin_gold", type:"once",
     ownedCheck:()=>!!state.luckyCoinOwned, buy:()=>{ state.luckyCoinOwned=true; } },
+  { key:"achguide", nameJa:"実績の攻略本", nameEn:"Achievement Strategy Guide",
+    descJa:"隠し実績(???表示のもの)の内容と達成条件を先に教えてもらえる(1回限り、永続)", descEn:"Reveals what the hidden (???) achievements are and how to unlock them (one-time, permanent)",
+    cost:100, iconKey:"icon_achguide", type:"once",
+    ownedCheck:()=>!!state.achGuideOwned, buy:()=>{ state.achGuideOwned=true; } },
 ];
 function renderShop(){
   const html = SHOP_ITEMS.map(item=>{
@@ -596,8 +621,8 @@ const ACHIEVEMENT_DEFS = [
   {key:"mimicMaster", ja:"ミミック狩りの達人", en:"Mimic Slayer"},
   {key:"iceMaster", ja:"氷の探求者", en:"Ice Seeker"},
   {key:"jackpotBig", ja:"大ジャックポット", en:"Big Jackpot"},
-  {key:"moonClicker", ja:"月の秘密", en:"Moon's Secret", hidden:true},
-  {key:"bunnyClicker", ja:"ウサギを捕まえた", en:"Caught the Bunny", hidden:true},
+  {key:"moonClicker", ja:"月の秘密", en:"Moon's Secret", hidden:true, hintJa:"月を10回クリックする", hintEn:"Click the moon 10 times"},
+  {key:"bunnyClicker", ja:"ウサギを捕まえた", en:"Caught the Bunny", hidden:true, hintJa:"歩いているウサギをクリックする", hintEn:"Click the wandering bunny"},
 ];
 const ACH_PAGE_SIZE = 10;
 let achPage = 0;
@@ -610,8 +635,10 @@ function renderAchBubble(){
   html += `<div class="ach-list">`;
   ACHIEVEMENT_DEFS.slice(achPage*ACH_PAGE_SIZE, achPage*ACH_PAGE_SIZE+ACH_PAGE_SIZE).forEach(d=>{
     const got = !!ach[d.key];
-    const label = (!got && d.hidden) ? "???" : (state.lang==="en"?d.en:d.ja);
-    html += `<div class="${got?"":"ach-locked"}">${got?"★":"☆"} ${label}</div>`;
+    const guideRevealed = state.achGuideOwned && !got && d.hidden;
+    const label = (!got && d.hidden && !guideRevealed) ? "???" : (state.lang==="en"?d.en:d.ja);
+    const hint = guideRevealed ? `<span class="ach-hint">(${state.lang==="en"?d.hintEn:d.hintJa})</span>` : "";
+    html += `<div class="${got?"":"ach-locked"}">${got?"★":"☆"} ${label}${hint}</div>`;
   });
   html += `</div>`;
   html += `<div class="ach-pager">
@@ -817,7 +844,15 @@ function spawnParticles(kind,count){
       const im=document.createElement("img"); im.src=SPR[ck]; im.className="spr"; im.style.width="100%"; im.style.height="100%"; p.appendChild(im);
       p.animate([{transform:`translate(0,0) rotate(0deg)`,opacity:1},{transform:`translate(${(Math.random()-0.5)*160}px, ${cabRect.height+40}px) rotate(${720*(Math.random()>.5?1:-1)}deg)`,opacity:.9}],{duration:dur*1000,delay:delay*1000,easing:"ease-in",fill:"forwards"});
     } else if(kind==="fragment"){
-      const keys=["mimic_gold","mimic_wood","mimic_shadow","present_chest","present_reveal"];
+      // Which chest/sword/slime sprites go flying should match the active theme, not always
+      // show Mimic chests during a Zombie/Slime/Zenith win.
+      const FRAGMENT_KEYS = {
+        mimic:  ["mimic_gold","mimic_wood","mimic_shadow","present_chest","present_reveal"],
+        zombie: ["zombie_zombie","zombie_bride","zombie_doctorbones","zombie_blood"],
+        zenith: ["zenith_meowmere","zenith_terrablade","zenith_horseman","zenith_enchanted"],
+        slime:  ["slime_king","slime_queen","slime_golden","slime_pinky"],
+      };
+      const keys = FRAGMENT_KEYS[state.activeTheme] || FRAGMENT_KEYS.mimic;
       const cx=cabRect.left+cabRect.width/2, cy=cabRect.top+cabRect.height/2;
       p.style.cssText=`left:${cx}px;top:${cy}px;width:22px;height:22px;`;
       const im=document.createElement("img"); im.src=SPR[keys[i%keys.length]]; im.className="spr"; im.style.width="100%"; im.style.height="100%"; p.appendChild(im);
