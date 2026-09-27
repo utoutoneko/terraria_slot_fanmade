@@ -24,11 +24,12 @@ document.getElementById("standSign").src = SPR.deco_sign;
 document.getElementById("wanderBunny").src = SPR.deco_bunny;
 document.getElementById("bottleSlotIcon").src = SPR.deco_bottle;
 document.getElementById("faviconLink").href = SPR.deco_tree;
-document.querySelector("#themeMimic img").src = SPR.mimic_gold;
-document.querySelector("#themeToggleBtn img").src = SPR.mimic_gold;
-document.querySelector("#themeZombie img").src = SPR.icon_theme_zombie;
-document.querySelector("#themeZenith img").src = SPR.icon_theme_zenith;
-document.querySelector("#themeSlime img").src = SPR.icon_theme_slime;
+document.querySelector("#theme_mimic img").src = SPR.mimic_gold;
+document.querySelector("#themeToggleBtn img").src = SPR.icon_theme_switch;
+document.querySelector("#theme_zombie img").src = SPR.icon_theme_zombie;
+document.querySelector("#theme_zenith img").src = SPR.icon_theme_zenith;
+document.querySelector("#theme_slime img").src = SPR.icon_theme_slime;
+document.querySelectorAll(".themecost img").forEach(img=>{ img.src = SPR.icon_defendermedal; });
 document.getElementById("autoSpinIcon").src = SPR.deco_stressball;
 document.getElementById("digPickIcon").src = SPR.icon_pickaxe;
 
@@ -44,8 +45,8 @@ document.getElementById("bioHallow").style.backgroundImage = `url(${SPR.wall_hal
 document.getElementById("bioJungle").style.backgroundImage = `url(${SPR.wall_jungle})`;
 document.getElementById("digRow").style.setProperty('--wall-img', `url(${SPR.wall_dirt})`);
 
-/* ================= symbols ================= */
-const SYMBOLS = [
+/* ================= symbols / themes ================= */
+const MIMIC_SYMBOLS = [
   { id:"mimic", nameJa:"ミミック", nameEn:"Mimic", weight:24, mult:6, tier:1, fx:"coin",
     chestVariants:["mimic_chest_wood","mimic_chest_gold","mimic_chest_shadow"], revealVariants:["mimic_wood","mimic_gold","mimic_shadow"] },
   { id:"ice", nameJa:"アイスミミック", nameEn:"Ice Mimic", weight:20, mult:10, tier:2, fx:"frost",
@@ -61,7 +62,72 @@ const SYMBOLS = [
   { id:"present", nameJa:"プレゼントミミック", nameEn:"Present Mimic", weight:3, mult:1200, tier:5, fx:"jackpot",
     chestVariants:["present_chest"], revealVariants:["present_reveal"] },
 ];
-const TOTAL_WEIGHT = SYMBOLS.reduce((s,x)=>s+x.weight,0);
+const ZOMBIE_SYMBOLS = [
+  { id:"zombie_zombie", nameJa:"ゾンビ", nameEn:"Zombie", weight:24, mult:6, tier:1, fx:"coin",
+    chestVariants:["zombie_zombie"], revealVariants:["zombie_zombie"] },
+  { id:"zombie_bald", nameJa:"ハゲゾンビ", nameEn:"Bald Zombie", weight:20, mult:10, tier:2, fx:"frost",
+    chestVariants:["zombie_bald"], revealVariants:["zombie_bald"] },
+  { id:"zombie_swamp", nameJa:"沼地ゾンビ", nameEn:"Swamp Zombie", weight:16, mult:20, tier:3, fx:"corrupt",
+    chestVariants:["zombie_swamp"], revealVariants:["zombie_swamp"] },
+  { id:"zombie_armed", nameJa:"武装ゾンビ", nameEn:"Armed Zombie", weight:16, mult:20, tier:3, fx:"crimson",
+    chestVariants:["zombie_armed"], revealVariants:["zombie_armed"] },
+  { id:"zombie_pincushion", nameJa:"針山ゾンビ", nameEn:"Pincushion Zombie", weight:14, mult:25, tier:3, fx:"hallow",
+    chestVariants:["zombie_pincushion"], revealVariants:["zombie_pincushion"] },
+  { id:"zombie_female", nameJa:"フィメールゾンビ", nameEn:"Female Zombie", weight:8, mult:90, tier:4, fx:"jungle",
+    chestVariants:["zombie_female"], revealVariants:["zombie_female"] },
+  { id:"zombie_bride", nameJa:"花嫁ゾンビ", nameEn:"The Bride", weight:3, mult:1200, tier:5, fx:"jackpot",
+    chestVariants:["zombie_bride"], revealVariants:["zombie_bride"] },
+];
+const SLIME_SYMBOLS = [
+  { id:"slime_blue", nameJa:"ブルースライム", nameEn:"Blue Slime", weight:24, mult:6, tier:1, fx:"coin",
+    chestVariants:["slime_blue"], revealVariants:["slime_blue"] },
+  { id:"slime_purple", nameJa:"パープルスライム", nameEn:"Purple Slime", weight:20, mult:10, tier:2, fx:"frost",
+    chestVariants:["slime_purple"], revealVariants:["slime_purple"] },
+  { id:"slime_red", nameJa:"レッドスライム", nameEn:"Red Slime", weight:16, mult:20, tier:3, fx:"corrupt",
+    chestVariants:["slime_red"], revealVariants:["slime_red"] },
+  { id:"slime_black", nameJa:"ブラックスライム", nameEn:"Black Slime", weight:16, mult:20, tier:3, fx:"crimson",
+    chestVariants:["slime_black"], revealVariants:["slime_black"] },
+  { id:"slime_illuminant", nameJa:"イルミナントスライム", nameEn:"Illuminant Slime", weight:14, mult:25, tier:3, fx:"hallow",
+    chestVariants:["slime_illuminant"], revealVariants:["slime_illuminant"] },
+  { id:"slime_pinky", nameJa:"ピンキー", nameEn:"Pinky", weight:8, mult:90, tier:4, fx:"jungle",
+    chestVariants:["slime_pinky"], revealVariants:["slime_pinky"] },
+  { id:"slime_king", nameJa:"キングスライム", nameEn:"King Slime", weight:3, mult:1200, tier:5, fx:"jackpot",
+    chestVariants:["slime_king"], revealVariants:["slime_king"] },
+];
+// Zenith: 9 symbols (all of Zenith's real crafting ingredients except Copper Shortsword, per
+// the Zenith recipe on terraria.wiki.gg). Normal 3-in-a-row lines pay out same as any other
+// theme, but landing all 9 different swords across the 9 cells at once (impossible to also be
+// a line-match, since no 3 cells can share a symbol) triggers a separate "Zenith Assembled"
+// mega-jackpot - see isZenithAssembled().
+const ZENITH_SYMBOLS = [
+  { id:"zenith_enchanted", nameJa:"エンチャンテッドソード", nameEn:"Enchanted Sword", weight:24, mult:6, tier:1, fx:"coin",
+    chestVariants:["zenith_enchanted"], revealVariants:["zenith_enchanted"] },
+  { id:"zenith_starfury", nameJa:"スターフューリー", nameEn:"Starfury", weight:18, mult:12, tier:2, fx:"frost",
+    chestVariants:["zenith_starfury"], revealVariants:["zenith_starfury"] },
+  { id:"zenith_starwrath", nameJa:"スターラース", nameEn:"Star Wrath", weight:13, mult:20, tier:3, fx:"corrupt",
+    chestVariants:["zenith_starwrath"], revealVariants:["zenith_starwrath"] },
+  { id:"zenith_seedler", nameJa:"シードラー", nameEn:"Seedler", weight:13, mult:20, tier:3, fx:"crimson",
+    chestVariants:["zenith_seedler"], revealVariants:["zenith_seedler"] },
+  { id:"zenith_influx", nameJa:"インフラックスウェイバー", nameEn:"Influx Waver", weight:13, mult:22, tier:3, fx:"hallow",
+    chestVariants:["zenith_influx"], revealVariants:["zenith_influx"] },
+  { id:"zenith_beekeeper", nameJa:"ビーキーパー", nameEn:"Bee Keeper", weight:13, mult:22, tier:3, fx:"hallow",
+    chestVariants:["zenith_beekeeper"], revealVariants:["zenith_beekeeper"] },
+  { id:"zenith_horseman", nameJa:"ホースマンズブレード", nameEn:"The Horseman's Blade", weight:10, mult:40, tier:4, fx:"jungle",
+    chestVariants:["zenith_horseman"], revealVariants:["zenith_horseman"] },
+  { id:"zenith_meowmere", nameJa:"ニャウメア", nameEn:"Meowmere", weight:4, mult:300, tier:5, fx:"jackpot",
+    chestVariants:["zenith_meowmere"], revealVariants:["zenith_meowmere"] },
+  { id:"zenith_terrablade", nameJa:"テラブレード", nameEn:"Terra Blade", weight:4, mult:300, tier:5, fx:"jackpot",
+    chestVariants:["zenith_terrablade"], revealVariants:["zenith_terrablade"] },
+];
+const THEME_DEFS = {
+  mimic:  { nameJa:"ミミック", nameEn:"Mimic",  symbols:MIMIC_SYMBOLS,  scatterId:"present",         unlockCost:0, iconKey:"mimic_gold" },
+  zombie: { nameJa:"ゾンビ",   nameEn:"Zombie", symbols:ZOMBIE_SYMBOLS, scatterId:"zombie_bride",     unlockCost:3, iconKey:"icon_theme_zombie" },
+  zenith: { nameJa:"ゼニス",   nameEn:"Zenith", symbols:ZENITH_SYMBOLS, scatterId:"zenith_meowmere",  unlockCost:5, iconKey:"icon_theme_zenith" },
+  slime:  { nameJa:"スライム", nameEn:"Slime",  symbols:SLIME_SYMBOLS,  scatterId:"slime_king",       unlockCost:3, iconKey:"icon_theme_slime" },
+};
+const THEME_ORDER = ["mimic","zombie","zenith","slime"];
+let SYMBOLS = MIMIC_SYMBOLS;
+let SCATTER_ID = "present";
 // Kakuhen (bonus mode) skews the odds: plain Mimics are halved, tier 3+ doubled.
 function symbolWeight(s, boost){ return boost ? s.weight * (s.tier>=3 ? 2 : (s.tier===1 ? 0.5 : 1)) : s.weight; }
 function pickSymbol(pool, boost){
@@ -72,7 +138,16 @@ function pickSymbol(pool, boost){
   return list[0];
 }
 function pickVariantIndex(sym){ return Math.floor(Math.random()*sym.chestVariants.length); }
-function computeRTP(){ const p=SYMBOLS.map(s=>s.weight/TOTAL_WEIGHT); let lineEV=0; SYMBOLS.forEach((s,i)=>{ lineEV+=Math.pow(p[i],3)*s.mult; }); return lineEV*LINES.length; }
+function computeRTP(){
+  const total = SYMBOLS.reduce((s,x)=>s+x.weight,0);
+  const p=SYMBOLS.map(s=>s.weight/total); let lineEV=0; SYMBOLS.forEach((s,i)=>{ lineEV+=Math.pow(p[i],3)*s.mult; }); return lineEV*LINES.length;
+}
+function isZenithAssembled(finalGrid){
+  if(SYMBOLS!==ZENITH_SYMBOLS) return false;
+  const ids=new Set();
+  for(let c=0;c<3;c++) for(let r=0;r<3;r++) ids.add(finalGrid[c][r].sym.id);
+  return ids.size===9;
+}
 
 const LINES = [
   { id:"top", cells:[[0,0],[0,1],[0,2]], color:"#ffd24a" },
@@ -94,10 +169,12 @@ function formatCoins(v){
 }
 
 const SAVE_KEY = "mimicslot_terrariajp_save_v3";
-const DEFAULT_STATE = { balance: 10*GOLD, lang:"ja", sound:true, digCooldownUntil:0, ghostCooldownUntil:0, achievements:{}, jackpotPool: 5000, streak:0, bottles:0, totalSpins:0, symbolsWon:{}, starFragments:0, mana:0, totalDigs:0, freeSpinTriggers:0, jackpotWins:0, manaUsed:0, pityCount:0, kakuhenTriggers:0, symbolWinCounts:{}, bottleUsedCount:0, biggestJackpot:0, moonClicks:0, totalGhosts:0, defenderMedals:0, betIndex:3 };
+const DEFAULT_STATE = { balance: 10*GOLD, lang:"ja", sound:true, digCooldownUntil:0, ghostCooldownUntil:0, achievements:{}, jackpotPool: 5000, streak:0, bottles:0, totalSpins:0, symbolsWon:{}, starFragments:0, mana:0, totalDigs:0, freeSpinTriggers:0, jackpotWins:0, manaUsed:0, pityCount:0, kakuhenTriggers:0, symbolWinCounts:{}, bottleUsedCount:0, biggestJackpot:0, moonClicks:0, totalGhosts:0, defenderMedals:0, betIndex:3, activeTheme:"mimic", themeUnlocked:{mimic:true}, zenithAssembles:0 };
 let state = loadState();
 function loadState(){ try{ const raw=localStorage.getItem(SAVE_KEY); if(!raw) return {...DEFAULT_STATE}; return {...DEFAULT_STATE, ...JSON.parse(raw)}; }catch(e){ return {...DEFAULT_STATE}; } }
 function saveState(){ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }
+if(!state.themeUnlocked) state.themeUnlocked = {mimic:true};
+if(THEME_DEFS[state.activeTheme]){ SYMBOLS = THEME_DEFS[state.activeTheme].symbols; SCATTER_ID = THEME_DEFS[state.activeTheme].scatterId; }
 
 // 1 / 2.5 / 5 per decade, from 10 copper up to 100 platinum (100,000,000 copper)
 const BET_STEPS = (()=>{ const a=[]; for(let d=10; d<=10000000; d*=10){ a.push(d, d*2.5, d*5); } a.push(100000000); return a; })();

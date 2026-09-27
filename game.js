@@ -67,7 +67,6 @@ function sfxGhostCatch(){ playReal("ghostCatch",0.6); }
 const JACKPOT_FEED_RATE = 0.03;      // 3% of every paid bet feeds the mystery pot
 const JACKPOT_TRIGGER_CHANCE = 0.0009; // flat chance per paid spin to pop the mystery pot
 const JACKPOT_SEED = 5000;             // reseed value (50 silver) after it pops
-const SCATTER_ID = "present";
 const SCATTER_MIN = 3;
 const FREE_SPINS_AWARD = 5;
 const FREE_SPINS_MULT = 2;
@@ -76,6 +75,7 @@ const KAKU_SPINS = 5;      // bonus mode length (spins)
 const KAKU_MULT = 1.5;     // payout multiplier during bonus mode
 const PITY_LIMIT = 100;    // paid spins without bonus mode before it is forced ("tenjou")
 const KAKU_STREAK_TRIGGER = 3;
+const ZENITH_ASSEMBLE_MULT = 3000; // flat bet multiplier when all 9 Zenith swords land at once
 
 let freeSpinsRemaining = 0;
 let bottleBuffRemaining = 0;
@@ -380,13 +380,55 @@ document.getElementById("skyMoon").onclick=()=>{
   if(state.moonClicks>=10) unlockAch("moonClicker"); else saveState();
 };
 document.getElementById("wanderBunny").onclick=()=>{ unlockAch("bunnyClicker"); };
-document.getElementById("themeToggleBtn").onclick=()=>{ document.getElementById("themeModal").classList.add("show"); };
+document.getElementById("themeToggleBtn").onclick=()=>{ renderThemeGrid(); document.getElementById("themeModal").classList.add("show"); };
 document.getElementById("themeModalClose").onclick=()=>{ document.getElementById("themeModal").classList.remove("show"); };
 document.getElementById("themeModal").onclick=(e)=>{ if(e.target.id==="themeModal") e.currentTarget.classList.remove("show"); };
-document.getElementById("themeMimic").onclick=()=>{ document.getElementById("themeModal").classList.remove("show"); };
-["themeZombie","themeZenith","themeSlime","themeMore"].forEach(id=>{
-  document.getElementById(id).onclick=()=>{ showToast(state.lang==="en"?"Coming soon!":"近日公開!"); };
+function switchTheme(themeId){
+  const def = THEME_DEFS[themeId]; if(!def) return;
+  state.activeTheme = themeId;
+  SYMBOLS = def.symbols;
+  SCATTER_ID = def.scatterId;
+  saveState();
+  randomizeAllCells();
+  renderPaytable();
+  renderThemeGrid();
+  document.querySelector("#themeToggleBtn img").src = SPR[def.iconKey] || SPR.icon_theme_switch;
+  showToast(state.lang==="en" ? `Switched to ${def.nameEn} Slots!` : `${def.nameJa}スロットに切り替え!`);
+}
+function tryUnlockTheme(themeId){
+  const def = THEME_DEFS[themeId]; if(!def) return;
+  if(!state.themeUnlocked) state.themeUnlocked = {mimic:true};
+  if(state.themeUnlocked[themeId]){ switchTheme(themeId); document.getElementById("themeModal").classList.remove("show"); return; }
+  if((state.defenderMedals||0) < def.unlockCost){
+    showToast(state.lang==="en"
+      ? `Need ${def.unlockCost} Defender Medals to unlock ${def.nameEn} (you have ${state.defenderMedals||0})`
+      : `${def.nameJa}の解禁にはディフェンダーのメダルが${def.unlockCost}枚必要(所持${state.defenderMedals||0}枚)`);
+    return;
+  }
+  state.defenderMedals -= def.unlockCost;
+  state.themeUnlocked[themeId] = true;
+  saveState();
+  renderBalance();
+  showToast(state.lang==="en" ? `${def.nameEn} Slots unlocked!` : `${def.nameJa}スロットを解禁した!`);
+  switchTheme(themeId);
+  document.getElementById("themeModal").classList.remove("show");
+}
+function renderThemeGrid(){
+  if(!state.themeUnlocked) state.themeUnlocked = {mimic:true};
+  THEME_ORDER.forEach(id=>{
+    const btn = document.getElementById("theme_"+id); if(!btn) return;
+    const def = THEME_DEFS[id];
+    const unlocked = !!state.themeUnlocked[id];
+    btn.classList.toggle("active", state.activeTheme===id);
+    btn.classList.toggle("locked", !unlocked);
+    btn.title = unlocked ? def.nameEn : `${def.nameEn} - ${def.unlockCost} Defender Medals to unlock`;
+  });
+}
+THEME_ORDER.forEach(id=>{
+  const btn = document.getElementById("theme_"+id);
+  if(btn) btn.onclick=()=>tryUnlockTheme(id);
 });
+document.getElementById("themeMore").onclick=()=>{ showToast(state.lang==="en"?"More themes coming soon!":"他のテーマも近日公開!"); };
 document.getElementById("payClose").onclick=()=>{ document.getElementById("payModal").classList.remove("show"); };
 document.getElementById("payModal").onclick=(e)=>{ if(e.target.id==="payModal") e.currentTarget.classList.remove("show"); };
 document.getElementById("digToggle").onclick=()=>{ document.getElementById("digModal").classList.add("show"); renderDig(); };
@@ -745,7 +787,7 @@ function checkAchievements(wins, totalPayout, payoutRatio, jackpotWin){
   if(wins.length>=3) unlockAch("multiline");
   if(state.balance>=PLATINUM) unlockAch("richPlayer");
   if(wins.some(w=>w.sym.id==="jungle")) unlockAch("jungle");
-  if(SYMBOLS.every(s=>state.symbolsWon[s.id])) unlockAch("allSymbols");
+  if(MIMIC_SYMBOLS.every(s=>state.symbolsWon[s.id])) unlockAch("allSymbols");
   if((state.totalSpins||0)>=100) unlockAch("spins100");
   if(state.streak>=5) unlockAch("streak5");
   if(payoutRatio>=100) unlockAch("megaWin");
@@ -790,7 +832,7 @@ function checkAchievements(wins, totalPayout, payoutRatio, jackpotWin){
 }
 let spinning=false;
 function weightedFinalGrid(boost){
-  const pool = manaPurifyNextSpin ? SYMBOLS.filter(s=>s.id!=="mimic") : SYMBOLS;
+  const pool = manaPurifyNextSpin ? SYMBOLS.filter(s=>s.tier!==1) : SYMBOLS;
   const result=[]; for(let c=0;c<3;c++){ const col=[]; for(let r=0;r<3;r++){ const sym=pickSymbol(pool, boost); col.push({sym,variant:pickVariantIndex(sym)}); } result.push(col); } return result;
 }
 async function spin(){
@@ -847,14 +889,22 @@ async function spin(){
   let triggeredFreeSpins=false;
   if(scatterCount>=SCATTER_MIN){ freeSpinsRemaining+=FREE_SPINS_AWARD; triggeredFreeSpins=true; updateFreeSpinBadge(); state.freeSpinTriggers=(state.freeSpinTriggers||0)+1; }
 
+  // Zenith theme special win: all 9 cells show 9 different Zenith-ingredient swords at once.
+  // Impossible to also be a line win (no 3 cells can share a symbol when all 9 are distinct).
+  let zenithBonus = 0;
+  if(isZenithAssembled(finalGrid)){
+    zenithBonus = bet * ZENITH_ASSEMBLE_MULT;
+    state.zenithAssembles = (state.zenithAssembles||0)+1;
+  }
+
   const bottleMultAtSpinTime = bottleBuffRemaining>0 ? 2 : 1;
   if(bottleBuffRemaining>0){ bottleBuffRemaining--; updateBottleBuffBadge(); renderBottleUI(); }
 
   const kakuMultAtSpinTime = kakuActive ? KAKU_MULT : 1;
   if(kakuActive){ kakuhenRemaining--; }
 
-  if(wins.length || jackpotWin>0 || triggeredFreeSpins){
-    await playWin(wins, {isFree, jackpotWin, triggeredFreeSpins, bet, bottleMultAtSpinTime, kakuMultAtSpinTime});
+  if(wins.length || jackpotWin>0 || triggeredFreeSpins || zenithBonus>0){
+    await playWin(wins, {isFree, jackpotWin, triggeredFreeSpins, bet, bottleMultAtSpinTime, kakuMultAtSpinTime, zenithBonus});
   } else {
     setMsg("擬態を見破れ…!","Spot the mimics...!");
     state.streak=0; updateStreakLine();
@@ -872,13 +922,14 @@ async function spin(){
 
 async function playWin(wins, extra){
   extra = extra||{};
-  const isFree=!!extra.isFree, jackpotWin=extra.jackpotWin||0, triggeredFreeSpins=!!extra.triggeredFreeSpins;
+  const isFree=!!extra.isFree, jackpotWin=extra.jackpotWin||0, triggeredFreeSpins=!!extra.triggeredFreeSpins, zenithBonus=extra.zenithBonus||0;
 
-  if(wins.length){
+  if(wins.length || zenithBonus>0){
     reelwindowEl.classList.add("winpunch"); setTimeout(()=>reelwindowEl.classList.remove("winpunch"),380);
     // line-drawing overlay removed per user preference; wins are still shown via cell pop/flash/reveal
     const revealSet=new Map();
     wins.forEach(w=>w.line.cells.forEach(([r,c])=>revealSet.set(r+"_"+c,[r,c])));
+    if(zenithBonus>0){ for(let r=0;r<3;r++) for(let c=0;c<3;c++) revealSet.set(r+"_"+c,[r,c]); }
     revealSet.forEach(([r,c])=>{ const cell=cellAt(r,c); cell.el.classList.add("popflash");
       cell.img.src=SPR[cell.sym.revealVariants[cell.variantIdx % cell.sym.revealVariants.length]];
       cell.el.classList.add("pop"); setTimeout(()=>{ cell.el.classList.remove("pop"); cell.el.classList.remove("popflash"); },650); });
@@ -893,7 +944,7 @@ async function playWin(wins, extra){
   const bottleMult = extra.bottleMultAtSpinTime || 1;
   const kakuMult = extra.kakuMultAtSpinTime || 1;
   let linePayout = Math.round(wins.reduce((s,w)=>s+w.payout,0) * streakMult * freeMult * bottleMult * kakuMult);
-  const totalPayout = linePayout + jackpotWin;
+  const totalPayout = linePayout + jackpotWin + zenithBonus;
 
   if(totalPayout>0) showFloatingPayout(totalPayout);
   let maxWait=700;
@@ -923,7 +974,7 @@ async function playWin(wins, extra){
       else if(sym.fx==="crimson"){ shakeCabinet("shake-md"); spawnParticles("blood",26); showBiome("bioCrimson",1300); maxWait=Math.max(maxWait,1300); }
       else if(sym.fx==="hallow"){ shakeCabinet("shake-md"); spawnParticles("spark",30); showBiome("bioHallow",1300); maxWait=Math.max(maxWait,1300); }
       else if(sym.fx==="jungle"){ shakeCabinet("shake-lg"); cabinet.classList.add("punch"); setTimeout(()=>cabinet.classList.remove("punch"),400);
-        spawnParticles("tree",26); showBanner("JUNGLE MIMIC!!",1500);
+        spawnParticles("tree",26); showBanner((state.lang==="en"?sym.nameEn.toUpperCase():sym.nameJa)+"!!",1500);
         maxWait=Math.max(maxWait,1700); }
       else if(sym.fx==="jackpot"){ shakeCabinet("shake-lg"); cabinet.classList.add("punch"); setTimeout(()=>cabinet.classList.remove("punch"),400);
         borderLights.classList.add("on");
@@ -935,6 +986,20 @@ async function playWin(wins, extra){
     if(wins.length>1) showBanner((state.lang==="en"?wins.length+"-LINE COMBO!":wins.length+"ライン コンボ!"), 1400);
   } else if(jackpotWin>0 || triggeredFreeSpins){
     setMsg(state.lang==="en"?"Bonus triggered!":"ボーナス発生!", state.lang==="en"?"Bonus triggered!":"ボーナス発生!", null, null, true);
+  }
+
+  if(zenithBonus>0){
+    shakeCabinet("shake-lg"); cabinet.classList.add("punch"); setTimeout(()=>cabinet.classList.remove("punch"),400);
+    borderLights.classList.add("on");
+    screenFlash("rgba(180,140,255,.8)", 900);
+    spawnParticles("confetti",60); spawnParticles("rainbow",16); spawnParticles("fragment",14); spawnParticles("spark",30);
+    showBanner(state.lang==="en"?"★ ZENITH ASSEMBLED! ★":"★ ゼニス、完成!! ★", 2800);
+    setMsg(state.lang==="en"?`All 9 swords aligned! +${formatCoins(zenithBonus)}`:`9本の剣が揃った! +${formatCoins(zenithBonus)}`, state.lang==="en"?`All 9 swords aligned! +${formatCoins(zenithBonus)}`:`9本の剣が揃った! +${formatCoins(zenithBonus)}`, null, null, true);
+    sfxJackpot();
+    setTimeout(()=>{ shakeCabinet("shake-lg"); cabinet.classList.add("punch"); setTimeout(()=>cabinet.classList.remove("punch"),400); },300);
+    setTimeout(()=>{ shakeCabinet("shake-lg"); }, 700);
+    setTimeout(()=>borderLights.classList.remove("on"),3000);
+    maxWait = Math.max(maxWait, 3000);
   }
 
   if(jackpotWin>0){
