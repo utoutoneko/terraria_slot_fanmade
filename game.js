@@ -448,10 +448,13 @@ function spawnParticles(kind,count){
     } else if(kind==="spark"){ const col=["#ffb3e6","#b3e6ff","#c8ffb3","#fff2b3"][i%4];
       p.style.cssText=`left:${startX}px;top:${cabRect.top+cabRect.height*0.35}px;width:5px;height:5px;border-radius:50%;background:${col};box-shadow:0 0 8px ${col};opacity:1;`;
       p.animate([{transform:`translate(0,0) scale(1)`,opacity:1},{transform:`translate(${(Math.random()-0.5)*220}px, ${(Math.random()-0.5)*220}px) scale(.2)`,opacity:0}],{duration:dur*1000,delay:delay*1000,easing:"ease-out",fill:"forwards"});
-    } else if(kind==="coin"){ p.style.cssText=`left:${startX}px;top:${cabRect.top+cabRect.height*0.4}px;width:9px;height:9px;border-radius:50%;background:#e8c14a;box-shadow:inset -1px -1px 0 rgba(0,0,0,.4);opacity:1;`;
+    } else if(kind==="coin"){ const ck=["coin_copper","coin_silver","coin_gold","coin_platinum"][i%4];
+      p.style.cssText=`left:${startX}px;top:${cabRect.top+cabRect.height*0.4}px;width:10px;height:10px;`;
+      const im=document.createElement("img"); im.src=SPR[ck]; im.className="spr"; im.style.width="100%"; im.style.height="100%"; p.appendChild(im);
       p.animate([{transform:`translate(0,0) rotateY(0deg)`,opacity:1},{transform:`translate(${(Math.random()-0.5)*80}px, ${cabRect.height+40}px) rotateY(900deg)`,opacity:.9}],{duration:dur*1000,delay:delay*1000,easing:"cubic-bezier(.4,0,.8,1)",fill:"forwards"});
-    } else if(kind==="confetti"){ const col=["#ff5a6e","#ffd85a","#5affa0","#5ac8ff","#c85aff"][i%5];
-      p.style.cssText=`left:${startX}px;top:${cabRect.top-10}px;width:7px;height:10px;background:${col};opacity:1;`;
+    } else if(kind==="confetti"){ const ck=["coin_copper","coin_silver","coin_gold","coin_platinum"][i%4];
+      p.style.cssText=`left:${startX}px;top:${cabRect.top-10}px;width:9px;height:9px;`;
+      const im=document.createElement("img"); im.src=SPR[ck]; im.className="spr"; im.style.width="100%"; im.style.height="100%"; p.appendChild(im);
       p.animate([{transform:`translate(0,0) rotate(0deg)`,opacity:1},{transform:`translate(${(Math.random()-0.5)*160}px, ${cabRect.height+40}px) rotate(${720*(Math.random()>.5?1:-1)}deg)`,opacity:.9}],{duration:dur*1000,delay:delay*1000,easing:"ease-in",fill:"forwards"});
     } else if(kind==="fragment"){
       const keys=["mimic_gold","mimic_wood","mimic_shadow","present_chest","present_reveal"];
