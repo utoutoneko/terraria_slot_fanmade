@@ -174,6 +174,7 @@ function checkPlatinumAutoConvert(){
   // platinum reserve into Defender Medals (1,000 platinum = 1 medal) - a real Terraria currency,
   // repurposed here as the shop currency for unlocking other slot themes.
   if(state.balance < PLATINUM_AUTOCONVERT_AT) return;
+  if(!state.themeBtnUnlocked){ state.themeBtnUnlocked = true; updateThemeBtnVisibility(); }
   const convertible = state.balance - PLATINUM_KEEP_ON_CONVERT;
   const medals = Math.floor(convertible/MEDAL_RATE);
   if(medals<=0) return;
@@ -236,7 +237,7 @@ function renderPaytable(){
   + `<div class="streaknote"><span class="hidden-ja">🔥 連勝ボーナス:2連勝目から配当+10%、以降1連勝ごとに+10%(最大+100%)</span><span class="hidden-en">🔥 Win streak bonus: +10% payout from your 2nd consecutive win, +10% per further win (up to +100%)</span></div>`;
 }
 function updateSoundBtn(){ document.getElementById("soundBtn").classList.toggle("active", state.sound); }
-renderBalance(true); renderBet(); applyLang(); renderPaytable(); updateSoundBtn(); renderJackpot(true); updateFreeSpinBadge(); updateStreakLine(); renderBottleUI(); updateBottleBuffBadge(); updateHudStrip(); updateKakuUI();
+renderBalance(true); renderBet(); applyLang(); renderPaytable(); updateSoundBtn(); renderJackpot(true); updateFreeSpinBadge(); updateStreakLine(); renderBottleUI(); updateBottleBuffBadge(); updateHudStrip(); updateKakuUI(); updateThemeBtnVisibility();
 function syncSkyHeight(){
   cabinet.style.marginTop = '34px';
   const top = cabinet.getBoundingClientRect().top;
@@ -339,7 +340,7 @@ document.getElementById("resetBtn2").onclick=()=>{
   localStorage.removeItem(SAVE_KEY);
   randomizeAllCells(); renderPaytable(); renderThemeGrid();
   document.querySelector("#themeToggleBtn img").src = SPR.icon_theme_switch;
-  updateFreeSpinBadge(); updateBottleBuffBadge(); updateKakuUI(); renderBottleUI(); updateAutoSpinUI();
+  updateFreeSpinBadge(); updateBottleBuffBadge(); updateKakuUI(); renderBottleUI(); updateAutoSpinUI(); updateThemeBtnVisibility();
   renderBalance(true); renderBet(); setMsg("リセットしました","Reset complete");
 };
 document.getElementById("torchGameBtn").onclick=()=>{ document.getElementById("ghostModal").classList.add("show"); renderGhost(); };
@@ -429,6 +430,15 @@ function tryUnlockTheme(themeId){
   showToast(state.lang==="en" ? `${def.nameEn} Slots unlocked!` : `${def.nameJa}スロットを解禁した!`);
   switchTheme(themeId);
   document.getElementById("themeModal").classList.remove("show");
+}
+function updateThemeBtnVisibility(){
+  // Reaching 10,000 platinum once (the point the Defender Medal economy kicks in) is what
+  // reveals the theme-switch button next to the guide - before that a new player has no way
+  // to afford any theme unlock cost anyway, so showing it earlier would just be clutter.
+  // Also treated as unlocked retroactively if a save already has medals or a non-mimic theme
+  // (covers saves from before this flag existed, or otherwise already past this point).
+  const alreadyPast = state.themeBtnUnlocked || (state.defenderMedals||0)>0 || Object.keys(state.themeUnlocked||{}).length>1;
+  document.getElementById("themeToggleBtn").style.display = alreadyPast ? "" : "none";
 }
 function renderThemeGrid(){
   if(!state.themeUnlocked) state.themeUnlocked = {mimic:true};
