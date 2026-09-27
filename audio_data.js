@@ -321,7 +321,7 @@ const grid=document.getElementById("grid"), balanceBar=document.getElementById("
   kakuBadge=document.getElementById("kakuBadge"), kakuLeft=document.getElementById("kakuLeft"), kakuLeftEn=document.getElementById("kakuLeftEn"),
   pitylineEl=document.getElementById("pityline");
 for(let i=0;i<5;i++){ const im=document.createElement("img"); im.className="spr empty"; im.src=SPR.hud_heart; heartsRowEl.appendChild(im); }
-for(let i=0;i<4;i++){ const im=document.createElement("img"); im.className="spr empty"; im.src=SPR.hud_star; starsRowEl.appendChild(im); }
+for(let i=0;i<5;i++){ const im=document.createElement("img"); im.className="spr empty"; im.src=SPR.hud_star; starsRowEl.appendChild(im); }
 
 
 
