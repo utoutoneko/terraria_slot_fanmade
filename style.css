@@ -20,6 +20,7 @@ body{
   padding:4px 8px 4px; overflow-x:hidden; position:relative;
 }
 .worldbg{position:fixed;inset:0;z-index:0;overflow:hidden;}
+.scenestage{position:fixed;left:50%;top:0;transform:translateX(-50%);width:100%;max-width:480px;height:100%;z-index:3;pointer-events:none;}
 .worldbg .band{position:absolute;left:0;right:0;background-size:64px 64px;}
 .worldbg .sky{top:0;height:var(--skyh,30vh);background-color:#3a4fb0;background-image:var(--forest-img);background-repeat:repeat-x;background-size:auto 100%;background-position:0 bottom;}
 .worldbg .sky::after{content:none;}
@@ -83,22 +84,27 @@ img.spr{image-rendering:pixelated;image-rendering:crisp-edges;-webkit-user-drag:
 .chatpanel.show{display:block;}
 .chatpanel .chatline{border-bottom:1px solid rgba(255,255,255,.08);padding:2px 0;}
 
-.wanderbunny{position:absolute;top:calc(var(--skyh,30vh) - 14px);left:-30px;width:18px;height:auto;image-rendering:pixelated;z-index:2;animation:hopright 22s cubic-bezier(.4,0,.6,1) infinite;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));transform:translateX(0) scaleX(-1);}
+.wanderbunny{position:absolute;top:calc(var(--skyh,30vh) - 14px);left:-6%;width:18px;height:auto;image-rendering:pixelated;z-index:2;animation:hopright 34s cubic-bezier(.4,0,.6,1) infinite;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));transform:scaleX(-1);pointer-events:auto;cursor:pointer;}
+/* Animates the "left" percentage (relative to .scenestage's own width) rather than
+   transform:translateX(Nvw) - vw is relative to the full browser viewport, not this
+   480px-max stage, so on a wide desktop window it used to fly the bunny far outside the
+   visible game column. Percentage "left" is relative to the containing block's width,
+   which correctly matches the stage on any screen size. */
 @keyframes hopright{
-  0%{transform:translateX(0) scaleX(-1);opacity:0;}
+  0%{left:-6%; opacity:0;}
   3%{opacity:1;}
-  8%{transform:translateX(15vw) scaleX(-1);}
-  20%{transform:translateX(15vw) scaleX(-1);}
-  30%{transform:translateX(38vw) scaleX(-1);}
-  46%{transform:translateX(38vw) scaleX(-1);}
-  58%{transform:translateX(60vw) scaleX(-1);}
-  59%{transform:translateX(60vw) scaleX(-1);}
-  78%{transform:translateX(90vw) scaleX(-1);opacity:1;}
-  100%{transform:translateX(90vw) scaleX(-1);opacity:0;}
+  8%{left:15%;}
+  20%{left:15%;}
+  30%{left:38%;}
+  46%{left:38%;}
+  58%{left:60%;}
+  59%{left:60%;}
+  78%{left:96%; opacity:1;}
+  100%{left:96%; opacity:0;}
 }
-img.coinpile{position:fixed;top:calc(var(--skyh,30vh) - 20px);left:22%;width:42px;height:auto;image-rendering:pixelated;z-index:3;cursor:pointer;transition:transform .15s;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));pointer-events:auto !important;}
+img.coinpile{position:absolute;top:calc(var(--skyh,30vh) - 20px);left:22%;width:42px;height:auto;image-rendering:pixelated;z-index:3;cursor:pointer;transition:transform .15s;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));pointer-events:auto !important;}
 img.coinpile:hover{transform:scale(1.15) translateY(-2px);}
-img.grasstable{position:fixed;left:46%;top:calc(var(--skyh,30vh) - 26px);width:40px;height:auto;image-rendering:pixelated;z-index:3;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));cursor:pointer;pointer-events:auto !important;}
+img.grasstable{position:absolute;left:46%;top:calc(var(--skyh,30vh) - 26px);width:40px;height:auto;image-rendering:pixelated;z-index:3;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));cursor:pointer;pointer-events:auto !important;}
 .grasschair{position:absolute;left:51%;top:calc(var(--skyh,30vh) - 34px);width:20px;height:auto;image-rendering:pixelated;z-index:2;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));transform:scaleX(-1);}
 .decotree{position:absolute;left:2%;top:calc(var(--skyh,30vh) - 96px);width:56px;height:96px;image-rendering:pixelated;z-index:1;filter:drop-shadow(0 3px 3px rgba(0,0,0,.4));object-fit:contain;object-position:bottom;}
 .decomushroom{position:absolute;left:80%;top:calc(var(--skyh,30vh) - 14px);width:14px;height:14px;image-rendering:pixelated;z-index:2;object-fit:contain;object-position:bottom;}
@@ -106,10 +112,10 @@ img.grasstable{position:fixed;left:46%;top:calc(var(--skyh,30vh) - 26px);width:4
 .fallingstar{position:fixed;width:16px;height:auto;image-rendering:pixelated;z-index:4;cursor:pointer;filter:drop-shadow(0 0 6px rgba(255,240,150,.8));}
 .fallingstar.landed{animation:starTwinkle 1.2s ease-in-out infinite;}
 @keyframes starTwinkle{0%,100%{transform:scale(1);}50%{transform:scale(1.2);}}
-.skycelestial{position:absolute;width:40px;height:40px;image-rendering:pixelated;z-index:1;transition:opacity 1s;}
+.skycelestial{position:absolute;width:40px;height:40px;image-rendering:pixelated;z-index:1;transition:opacity 1s;pointer-events:auto;cursor:pointer;}
 .skycelestial.sun{filter:drop-shadow(0 0 10px rgba(255,240,180,.6));}
 .skycelestial.moon{filter:drop-shadow(0 0 8px rgba(200,210,255,.5));}
-img.standsign{position:fixed;top:calc(var(--skyh,30vh) - 22px);left:70%;width:26px;height:auto;image-rendering:pixelated;z-index:3;cursor:pointer;transition:transform .15s;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));pointer-events:auto !important;}
+img.standsign{position:absolute;top:calc(var(--skyh,30vh) - 22px);left:70%;width:26px;height:auto;image-rendering:pixelated;z-index:3;cursor:pointer;transition:transform .15s;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));pointer-events:auto !important;}
 .standsign:hover{transform:scale(1.15) translateY(-2px);}
 .grasstufts{position:absolute;inset:0;background-image:var(--grass-img);background-repeat:repeat-x;background-position:0 -1px;background-size:auto 220%;image-rendering:pixelated;opacity:.95;}
 .btnrow{display:flex;gap:5px;}
@@ -258,11 +264,12 @@ img.standsign{position:fixed;top:calc(var(--skyh,30vh) - 22px);left:70%;width:26
 .digtile.done{cursor:default;filter:brightness(.5);}
 .digtile .rev{animation:popreveal .5s cubic-bezier(.3,1.9,.4,1) both;font-size:16px;}
 .digcd{text-align:center;font-size:8px;opacity:.75;margin-top:6px;}
-.ghostfield{position:relative;height:140px;background-color:#14101c;background-image:radial-gradient(ellipse at 50% 100%, rgba(80,60,120,.35), transparent 70%);border:2px solid #241a0e;overflow:hidden;}
-.ghosttile{position:absolute;width:32px;height:32px;transform:translate(-50%,-50%);cursor:pointer;animation:ghostpop .22s ease-out both;}
+.ghostfield{position:relative;height:170px;background-color:#050308;border:2px solid #241a0e;overflow:hidden;touch-action:none;cursor:crosshair;}
+.ghostfog{position:absolute;inset:0;pointer-events:none;z-index:5;background:radial-gradient(circle 48px at var(--tx,-999px) var(--ty,-999px), transparent 0%, transparent 58%, rgba(4,3,8,.985) 100%);}
+.ghosttile{position:absolute;width:30px;height:30px;transform:translate(-50%,-50%);pointer-events:none;animation:ghostpop .22s ease-out both;transition:left .9s linear, top .9s linear;}
 .ghosttile img{width:100%;height:100%;filter:drop-shadow(0 0 4px rgba(200,220,255,.6));}
-.ghosttile.caught{animation:ghostcaught .35s ease-in forwards;pointer-events:none;}
-.ghosttile.missed{animation:ghostmissed .3s ease-in forwards;pointer-events:none;}
+.ghosttile.caught{animation:ghostcaught .35s ease-in forwards;}
+.ghosttile.missed{animation:ghostmissed .3s ease-in forwards;}
 @keyframes ghostpop{0%{transform:translate(-50%,-50%) scale(.3);opacity:0;}100%{transform:translate(-50%,-50%) scale(1);opacity:1;}}
 @keyframes ghostcaught{0%{transform:translate(-50%,-50%) scale(1);opacity:1;}100%{transform:translate(-50%,-50%) scale(1.6);opacity:0;}}
 @keyframes ghostmissed{0%{transform:translate(-50%,-50%) scale(1);opacity:.9;}100%{transform:translate(-50%,-50%) scale(.7) translateY(10px);opacity:0;}}

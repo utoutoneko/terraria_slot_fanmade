@@ -9,6 +9,17 @@
 <body>
 <div class="worldbg" id="worldbg">
   <div class="band sky"></div>
+  <div class="grassline"><div class="grasstufts" id="grassTufts"></div></div>
+  <div class="band dirt"><div class="tex" id="dirtTex"></div></div>
+  <div class="band stone"><div class="tex" id="stoneTex"></div></div>
+  <div class="darken"></div>
+</div>
+<!-- Sky/ground bands above stay full-bleed inside #worldbg (wide backdrop looks good at any
+     width). This stage is a separate, higher-z-index sibling of both #worldbg and .wrap so its
+     clickable sprites (sign/table/coinpile/moon/bunny) always win hit-testing over the cabinet,
+     the same way they did back when they were position:fixed - but centered to the same
+     480px-max column as the cabinet so they stay aligned with it on wide desktop screens. -->
+<div class="scenestage" id="sceneStage">
   <img class="skycelestial sun" id="skySun" alt="">
   <img class="skycelestial moon" id="skyMoon" alt="">
   <img class="wanderbunny" id="wanderBunny" alt="">
@@ -16,14 +27,10 @@
   <img class="spr decomushroom" id="decoMushroom" alt="">
   <img class="spr decosunflower" id="decoSunflower" alt="">
   <img class="spr grasschair" id="grassChair" alt="">
-  <div class="grassline"><div class="grasstufts" id="grassTufts"></div></div>
-  <div class="band dirt"><div class="tex" id="dirtTex"></div></div>
-  <div class="band stone"><div class="tex" id="stoneTex"></div></div>
-  <div class="darken"></div>
+  <img class="spr standsign" id="standSign" alt="">
+  <img class="spr grasstable" id="grassTable" alt="">
+  <img class="spr coinpile" id="coinPile" alt="">
 </div>
-<img class="spr standsign" id="standSign" alt="">
-<img class="spr grasstable" id="grassTable" alt="">
-<img class="spr coinpile" id="coinPile" alt="">
 <div id="starLayer"></div>
 <div class="fxlayer" id="fxlayer"></div>
 <div class="flashlayer" id="flashlayer"></div>
@@ -117,8 +124,8 @@
   <div class="modalbox">
     <button class="modalclose" id="ghostClose">✕</button>
     <div class="digpanel" id="ghostPanel">
-      <h4><span class="hidden-ja">出てきた幽霊を素早くクリックして退治しよう!</span><span class="hidden-en">Click the ghosts before they vanish!</span></h4>
-      <div class="ghostfield" id="ghostField"></div>
+      <h4><span class="hidden-ja">真っ暗な中、松明代わりの指/カーソルで幽霊を照らして退治しよう!</span><span class="hidden-en">It's pitch dark — move your torch to find and catch the ghosts!</span></h4>
+      <div class="ghostfield" id="ghostField"><div class="ghostfog" id="ghostFog"></div></div>
       <div class="digcd" id="ghostCd"></div>
     </div>
   </div>

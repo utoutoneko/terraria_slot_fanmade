@@ -312,7 +312,7 @@ document.getElementById("resetBtn2").onclick=()=>{
 document.getElementById("torchGameBtn").onclick=()=>{ document.getElementById("ghostModal").classList.add("show"); renderGhost(); };
 document.getElementById("ghostClose").onclick=()=>{ document.getElementById("ghostModal").classList.remove("show"); };
 document.getElementById("ghostModal").onclick=(e)=>{ if(e.target.id==="ghostModal") e.currentTarget.classList.remove("show"); };
-const AUTOSPIN_UNLOCK_SPINS = 50;
+const AUTOSPIN_UNLOCK_SPINS = 100;
 function isAutoSpinUnlocked(){ return (state.totalSpins||0) >= AUTOSPIN_UNLOCK_SPINS; }
 let autoSpinOn = false;
 const autoSpinBtn = document.getElementById("autoSpinBtn");
@@ -494,52 +494,88 @@ function startDigCountdown(){
   }, 250);
 }
 
-const ghostField = document.getElementById("ghostField"), ghostCd = document.getElementById("ghostCd");
-let ghostState={round:0,maxRounds:8,caught:0,earned:0};
-let ghostRunToken=0;
+// Ghost Hunt: the field is pitch dark except for a small torch circle that follows the
+// pointer/finger. Ghosts drift around freely (re-targeting a nearby spot every ~0.9s, with a
+// CSS transition giving the glide) and can only be caught while inside the lit torch radius -
+// clicking blind outside the light never registers a catch, matching "explore the dark with
+// the torch" rather than the old click-before-it-vanishes version.
+const ghostField = document.getElementById("ghostField"), ghostCd = document.getElementById("ghostCd"), ghostFog = document.getElementById("ghostFog");
+const GHOST_COUNT = 5, GHOST_ROUND_MS = 20000, TORCH_RADIUS = 48;
+let ghostState={active:false,caught:0,earned:0,ghosts:[]};
+let ghostRunToken=0, ghostDriftTimer=null, ghostRoundTimer=null;
+let torchX=-999, torchY=-999;
+function setTorch(clientX,clientY){
+  const r = ghostField.getBoundingClientRect();
+  torchX = clientX-r.left; torchY = clientY-r.top;
+  ghostField.style.setProperty("--tx", torchX+"px");
+  ghostField.style.setProperty("--ty", torchY+"px");
+}
+function resetTorch(){ torchX=-999; torchY=-999; ghostField.style.setProperty("--tx","-999px"); ghostField.style.setProperty("--ty","-999px"); }
+ghostField.addEventListener("pointermove", e=>setTorch(e.clientX,e.clientY));
+ghostField.addEventListener("pointerleave", resetTorch);
+ghostField.addEventListener("pointerdown", e=>{ setTorch(e.clientX,e.clientY); tryCatchGhosts(); });
 function renderGhost(){
   const now=Date.now();
-  if(now < state.ghostCooldownUntil){ ghostField.innerHTML=""; startGhostCountdown(); return; }
+  clearInterval(ghostDriftTimer); clearTimeout(ghostRoundTimer);
+  if(now < state.ghostCooldownUntil){ ghostField.querySelectorAll(".ghosttile").forEach(el=>el.remove()); resetTorch(); startGhostCountdown(); return; }
   // Cooldown starts the moment a fresh round opens (matches the dig minigame) so closing
   // the modal early can never be used to repeat-farm free ghost catches.
   state.ghostCooldownUntil = now + 25000; saveState();
-  ghostField.innerHTML=""; ghostCd.textContent="";
-  ghostState = {round:0, maxRounds:8, caught:0, earned:0};
+  ghostField.querySelectorAll(".ghosttile").forEach(el=>el.remove()); ghostCd.textContent=""; resetTorch();
   const myToken = ++ghostRunToken;
-  spawnGhostRound(myToken);
+  const fieldRect = ghostField.getBoundingClientRect();
+  ghostState = {active:true, caught:0, earned:0, ghosts:[]};
+  for(let i=0;i<GHOST_COUNT;i++){
+    const el=document.createElement("div"); el.className="ghosttile";
+    const img=document.createElement("img"); img.className="spr"; img.src=SPR.deco_ghost; el.appendChild(img);
+    const ghost={el, x:10+Math.random()*80, y:15+Math.random()*70, caught:false};
+    el.style.left=ghost.x+"%"; el.style.top=ghost.y+"%";
+    ghostField.appendChild(el);
+    ghostState.ghosts.push(ghost);
+  }
+  ghostDriftTimer = setInterval(()=>driftGhosts(myToken), 900);
+  ghostRoundTimer = setTimeout(()=>finishGhostRound(myToken), GHOST_ROUND_MS);
 }
-function spawnGhostRound(myToken){
-  if(myToken!==ghostRunToken) return; // modal was reopened/closed mid-round; abandon the stale chain
-  if(ghostState.round>=ghostState.maxRounds){ finishGhostRound(); return; }
-  ghostState.round++;
-  const el=document.createElement("div"); el.className="ghosttile";
-  const x=10+Math.random()*80, y=14+Math.random()*72;
-  el.style.left=x+"%"; el.style.top=y+"%";
-  const img=document.createElement("img"); img.className="spr"; img.src=SPR.deco_ghost; el.appendChild(img);
-  let resolved=false;
-  const life=800+Math.random()*500;
-  const timer=setTimeout(()=>{
-    if(resolved) return; resolved=true;
-    el.classList.add("missed"); setTimeout(()=>{ el.remove(); spawnGhostRound(myToken); },260);
-  }, life);
-  el.onclick=()=>{
-    if(resolved) return; resolved=true; clearTimeout(timer);
-    el.classList.add("caught"); sfxGrab();
-    state.totalGhosts=(state.totalGhosts||0)+1;
-    const roll=Math.random(); let gain;
-    if(roll<0.55) gain=8+Math.floor(Math.random()*40);
-    else if(roll<0.90) gain=SILVER*(1+Math.floor(Math.random()*7));
-    else gain=SILVER*(6+Math.floor(Math.random()*12));
-    state.balance+=gain; renderBalance(); saveState(); if(gain>=SILVER) sfxGrab(); else sfxCoin(0.8);
-    ghostState.caught++; ghostState.earned+=gain;
-    setTimeout(()=>{ el.remove(); spawnGhostRound(myToken); },260);
-  };
-  ghostField.appendChild(el);
+function driftGhosts(myToken){
+  if(myToken!==ghostRunToken) return;
+  ghostState.ghosts.forEach(g=>{
+    if(g.caught) return;
+    g.x = Math.min(92, Math.max(8, g.x + (Math.random()-0.5)*36));
+    g.y = Math.min(88, Math.max(10, g.y + (Math.random()-0.5)*36));
+    g.el.style.left=g.x+"%"; g.el.style.top=g.y+"%";
+  });
 }
-function finishGhostRound(){
+function tryCatchGhosts(){
+  if(!ghostState.active) return;
+  const fieldRect = ghostField.getBoundingClientRect();
+  ghostState.ghosts.forEach(g=>{
+    if(g.caught) return;
+    const r = g.el.getBoundingClientRect();
+    const gx = r.left+r.width/2-fieldRect.left, gy = r.top+r.height/2-fieldRect.top;
+    const dist = Math.hypot(gx-torchX, gy-torchY);
+    if(dist <= TORCH_RADIUS) catchGhost(g);
+  });
+}
+function catchGhost(g){
+  g.caught=true; g.el.classList.add("caught"); sfxGrab();
+  state.totalGhosts=(state.totalGhosts||0)+1;
+  const roll=Math.random(); let gain;
+  if(roll<0.55) gain=8+Math.floor(Math.random()*40);
+  else if(roll<0.90) gain=SILVER*(1+Math.floor(Math.random()*7));
+  else gain=SILVER*(6+Math.floor(Math.random()*12));
+  state.balance+=gain; renderBalance(); saveState(); if(gain>=SILVER) sfxGrab(); else sfxCoin(0.8);
+  ghostState.caught++; ghostState.earned+=gain;
+  setTimeout(()=>g.el.remove(),350);
+  if(ghostState.ghosts.every(x=>x.caught)) finishGhostRound(ghostRunToken);
+}
+function finishGhostRound(myToken){
+  if(myToken!==ghostRunToken || !ghostState.active) return;
+  ghostState.active=false;
+  clearInterval(ghostDriftTimer); clearTimeout(ghostRoundTimer);
+  ghostState.ghosts.forEach(g=>{ if(!g.caught){ g.el.classList.add("missed"); setTimeout(()=>g.el.remove(),300); } });
   ghostCd.innerHTML = state.lang==="en"
-    ? `Caught ${ghostState.caught}/${ghostState.maxRounds} ghosts — +${formatCoins(ghostState.earned)}`
-    : `${ghostState.maxRounds}匹中${ghostState.caught}匹退治 — +${formatCoins(ghostState.earned)}`;
+    ? `Caught ${ghostState.caught}/${GHOST_COUNT} ghosts — +${formatCoins(ghostState.earned)}`
+    : `${GHOST_COUNT}匹中${ghostState.caught}匹退治 — +${formatCoins(ghostState.earned)}`;
   setTimeout(startGhostCountdown,1400);
 }
 let ghostTimerId=null;
