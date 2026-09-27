@@ -334,7 +334,12 @@ document.getElementById("resetBtn2").onclick=()=>{
   const ok=confirm(state.lang==="en" ? "Reset your save data and balance? This cannot be undone." : "セーブデータと所持金をリセットします。よろしいですか?(元に戻せません)");
   if(!ok) return;
   state={...DEFAULT_STATE, lang:state.lang, sound:state.sound};
-  betIndex=3; localStorage.removeItem(SAVE_KEY);
+  betIndex=3; freeSpinsRemaining=0; bottleBuffRemaining=0; bottleBuffMult=2; kakuhenRemaining=0; manaPurifyNextSpin=false;
+  lastRealBet=BET_STEPS[betIndex]; SYMBOLS=MIMIC_SYMBOLS; SCATTER_ID="present";
+  localStorage.removeItem(SAVE_KEY);
+  randomizeAllCells(); renderPaytable(); renderThemeGrid();
+  document.querySelector("#themeToggleBtn img").src = SPR.icon_theme_switch;
+  updateFreeSpinBadge(); updateBottleBuffBadge(); updateKakuUI(); renderBottleUI(); updateAutoSpinUI();
   renderBalance(true); renderBet(); setMsg("リセットしました","Reset complete");
 };
 document.getElementById("torchGameBtn").onclick=()=>{ document.getElementById("ghostModal").classList.add("show"); renderGhost(); };
