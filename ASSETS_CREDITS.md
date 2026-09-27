@@ -17,8 +17,10 @@
   - 取得元: File:Enchanted_Sword.png, Starfury.png, Star_Wrath.png, Seedler.png, Influx_Waver.png, Bee_Keeper.png, The_Horseman's_Blade.png, Meowmere.png, Terra_Blade.png, Zenith.png (Terraria Wiki)。レシピはZenithページのRecipesテーブルで実在を確認済み
 - `icon_theme_switch`(テーマ切り替えボタンのアイコン): Terraria本編アイテム「ロッド・オブ・ディスコード」画像
   - 取得元: https://terraria.wiki.gg/wiki/File:Rod_of_Discord.png (Terraria Wiki)
-- `icon_travelingmerchant`(将来のショップ機能で使用予定、行商人アイコン): Terraria本編NPC「旅商人」画像
+- `icon_travelingmerchant`(ショップ機能の窓口、行商人アイコン): Terraria本編NPC「旅商人」画像
   - 取得元: https://terraria.wiki.gg/wiki/File:Traveling_Merchant.png (Terraria Wiki)
+- `icon_hermesboots`(ショップのターボスピン権利証アイコン): Terraria本編アイテム「ヘルメスブーツ」画像
+  - 取得元: https://terraria.wiki.gg/wiki/File:Hermes_Boots.png (Terraria Wiki)
 
 ## 音源
 - `ghostCatch`(幽霊退治ミニゲームの捕獲音): Terraria本編の効果音「NPC_Killed_1.wav」

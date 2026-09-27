@@ -79,6 +79,7 @@ const ZENITH_ASSEMBLE_MULT = 3000; // flat bet multiplier when all 9 Zenith swor
 
 let freeSpinsRemaining = 0;
 let bottleBuffRemaining = 0;
+let bottleBuffMult = 2;
 let kakuhenRemaining = 0;
 function updateKakuUI(){
   const on = kakuhenRemaining>0;
@@ -98,8 +99,9 @@ function startKakuhen(reasonJa, reasonEn, viaPity){
   if(viaPity) unlockAch("kakuhenPity");
 }
 function renderBottleUI(){
-  bottleCountEl.textContent = state.bottles||0;
-  useBottleBtn.disabled = !(state.bottles>0) || bottleBuffRemaining>0;
+  const total = (state.bottles||0) + (state.superBottles||0);
+  bottleCountEl.textContent = total;
+  useBottleBtn.disabled = !(total>0) || bottleBuffRemaining>0;
 }
 function updateBottleBuffBadge(){
   if(bottleBuffRemaining>0){ bottleBuffBadge.classList.add("show"); bbLeft.textContent=bottleBuffRemaining; bbLeftEn.textContent=bottleBuffRemaining; }
@@ -332,7 +334,7 @@ document.getElementById("torchGameBtn").onclick=()=>{ document.getElementById("g
 document.getElementById("ghostClose").onclick=()=>{ document.getElementById("ghostModal").classList.remove("show"); };
 document.getElementById("ghostModal").onclick=(e)=>{ if(e.target.id==="ghostModal") e.currentTarget.classList.remove("show"); };
 const AUTOSPIN_UNLOCK_SPINS = 100;
-function isAutoSpinUnlocked(){ return (state.totalSpins||0) >= AUTOSPIN_UNLOCK_SPINS; }
+function isAutoSpinUnlocked(){ return !!state.autoSpinForceUnlocked || (state.totalSpins||0) >= AUTOSPIN_UNLOCK_SPINS; }
 let autoSpinOn = false;
 const autoSpinBtn = document.getElementById("autoSpinBtn");
 function updateAutoSpinUI(){
@@ -364,14 +366,17 @@ autoSpinBtn.onclick=()=>{
   if(autoSpinOn) runAutoSpin();
 };
 useBottleBtn.onclick=()=>{
-  if(!(state.bottles>0) || bottleBuffRemaining>0) return;
-  state.bottles -= 1; bottleBuffRemaining = 5;
+  const hasSuper = (state.superBottles||0)>0, hasRegular = (state.bottles||0)>0;
+  if((!hasSuper && !hasRegular) || bottleBuffRemaining>0) return;
+  if(hasSuper){ state.superBottles -= 1; bottleBuffMult = 3; }
+  else { state.bottles -= 1; bottleBuffMult = 2; }
+  bottleBuffRemaining = 5;
   state.bottleUsedCount = (state.bottleUsedCount||0)+1;
   renderBottleUI(); updateBottleBuffBadge(); saveState(); sfxGrab();
   const first = unlockAch("bottleUsed");
   unlockAch("bottleAddict");
   if(!first){
-    showToast(state.lang==="en"?"Lucky Potion active! 2x payouts for 5 spins":"ラッキーポーション発動!5スピン配当2倍");
+    showToast(state.lang==="en"?`Lucky Potion active! ${bottleBuffMult}x payouts for 5 spins`:`ラッキーポーション発動!5スピン配当${bottleBuffMult}倍`);
   }
 };
 document.getElementById("coinPile").onclick=()=>{ document.getElementById("payModal").classList.add("show"); };
@@ -428,7 +433,62 @@ THEME_ORDER.forEach(id=>{
   const btn = document.getElementById("theme_"+id);
   if(btn) btn.onclick=()=>tryUnlockTheme(id);
 });
-document.getElementById("themeMore").onclick=()=>{ showToast(state.lang==="en"?"More themes coming soon!":"他のテーマも近日公開!"); };
+
+// Traveling Merchant's shop: spend Defender Medals on QoL/power-up items. Prices, effects and
+// balance here are a first pass (README/DEVLOG note this is the one open design call the
+// project owner left up to Claude) - kept intentionally modest relative to the game's already
+// very high RTP so they read as fun conveniences rather than something that further destabilizes
+// the economy.
+const SHOP_ITEMS = [
+  { key:"autospin", nameJa:"オートスピン権利証", nameEn:"Auto-Spin Pass",
+    descJa:"累計スピン数に関係なく自動スピンをすぐ解禁する(1回限り)", descEn:"Unlocks auto-spin immediately, skipping the 100-spin requirement (one-time)",
+    cost:2, iconKey:"deco_stressball", type:"once",
+    ownedCheck:()=>!!state.autoSpinForceUnlocked, buy:()=>{ state.autoSpinForceUnlocked=true; updateAutoSpinUI(); } },
+  { key:"superbottle", nameJa:"プレミアムボトル", nameEn:"Premium Bottle",
+    descJa:"使うと5スピンの間、配当が3倍になる(通常の瓶は2倍)。何個でも購入可", descEn:"Grants 3x payouts for 5 spins when used (regular bottles give 2x). Stackable",
+    cost:2, iconKey:"deco_bottle", type:"consumable",
+    countFn:()=>state.superBottles||0, buy:()=>{ state.superBottles=(state.superBottles||0)+1; renderBottleUI(); } },
+  { key:"turbo", nameJa:"ターボスピン権利証", nameEn:"Turbo Spin Pass",
+    descJa:"リールが止まるまでの時間を短縮し、1回転あたりの待ち時間を減らす(1回限り、永続)", descEn:"Shortens how long the reels take to stop, so each spin resolves faster (one-time, permanent)",
+    cost:3, iconKey:"icon_hermesboots", type:"once",
+    ownedCheck:()=>!!state.turboUnlocked, buy:()=>{ state.turboUnlocked=true; } },
+];
+function renderShop(){
+  const html = SHOP_ITEMS.map(item=>{
+    const owned = item.type==="once" && item.ownedCheck();
+    const count = item.type==="consumable" ? item.countFn() : null;
+    const canAfford = (state.defenderMedals||0) >= item.cost;
+    const name = state.lang==="en" ? item.nameEn : item.nameJa;
+    const desc = state.lang==="en" ? item.descEn : item.descJa;
+    const btnLabel = owned ? (state.lang==="en"?"Owned":"購入済み") : (state.lang==="en"?`Buy (${item.cost})`:`購入(${item.cost}枚)`);
+    return `<div class="shopitem">
+      <img class="spr" src="${SPR[item.iconKey]}">
+      <div class="shopitem-info">
+        <div class="shopitem-name">${name}${count!=null?` ×${count}`:""}</div>
+        <div class="shopitem-desc">${desc}</div>
+      </div>
+      <button class="shopitem-buy" data-key="${item.key}" ${(owned||!canAfford)?"disabled":""}>${btnLabel}</button>
+    </div>`;
+  }).join("");
+  document.getElementById("shopItems").innerHTML = html;
+  document.querySelectorAll(".shopitem-buy").forEach(btn=>{ btn.onclick=()=>buyShopItem(btn.dataset.key); });
+}
+function buyShopItem(key){
+  const item = SHOP_ITEMS.find(i=>i.key===key); if(!item) return;
+  if(item.type==="once" && item.ownedCheck()) return;
+  if((state.defenderMedals||0) < item.cost){
+    showToast(state.lang==="en" ? "Not enough Defender Medals" : "ディフェンダーのメダルが足りません");
+    return;
+  }
+  state.defenderMedals -= item.cost;
+  item.buy();
+  saveState(); renderBalance(); renderShop();
+  showToast(state.lang==="en" ? `Purchased ${item.nameEn}!` : `${item.nameJa}を購入した!`);
+}
+document.getElementById("shopToggleBtn").onclick=()=>{ renderShop(); document.getElementById("shopModal").classList.add("show"); };
+document.getElementById("shopModalClose").onclick=()=>{ document.getElementById("shopModal").classList.remove("show"); };
+document.getElementById("shopModal").onclick=(e)=>{ if(e.target.id==="shopModal") e.currentTarget.classList.remove("show"); };
+
 document.getElementById("payClose").onclick=()=>{ document.getElementById("payModal").classList.remove("show"); };
 document.getElementById("payModal").onclick=(e)=>{ if(e.target.id==="payModal") e.currentTarget.classList.remove("show"); };
 document.getElementById("digToggle").onclick=()=>{ document.getElementById("digModal").classList.add("show"); renderDig(); };
@@ -864,7 +924,8 @@ async function spin(){
   const flickers=cells.map(cell=>setInterval(()=>{ const sym=pickSymbol(); cell.img.src=SPR[sym.chestVariants[pickVariantIndex(sym)]]; if(Math.random()<0.25) sfxTick(); },65));
   const finalGrid=weightedFinalGrid(kakuActive);
   if(manaPurifyNextSpin){ manaPurifyNextSpin=false; }
-  const stopTimes=[700,1100,1600];
+  const turboScale = state.turboUnlocked ? 0.55 : 1;
+  const stopTimes=[700,1100,1600].map(t=>Math.round(t*turboScale));
   // cells[] is built row-major (index = row*3 + col), so column c's three cells are at indices c, 3+c, 6+c — NOT c*3..c*3+2.
   await Promise.all([0,1,2].map(c=>new Promise(res=>{
     setTimeout(()=>{
@@ -875,7 +936,7 @@ async function spin(){
       shakeCabinet("shake-sm"); sfxStop(); res();
     }, stopTimes[c]);
   })));
-  await new Promise(r=>setTimeout(r,220));
+  await new Promise(r=>setTimeout(r,Math.round(220*turboScale)));
   const wins = LINES.map(line=>{ const syms=line.cells.map(([r,c])=>finalGrid[c][r].sym.id);
     if(syms[0]===syms[1] && syms[1]===syms[2]){ const sym=finalGrid[line.cells[0][1]][line.cells[0][0]].sym; return {line,sym,payout:bet*sym.mult}; }
     return null; }).filter(Boolean);
@@ -897,7 +958,7 @@ async function spin(){
     state.zenithAssembles = (state.zenithAssembles||0)+1;
   }
 
-  const bottleMultAtSpinTime = bottleBuffRemaining>0 ? 2 : 1;
+  const bottleMultAtSpinTime = bottleBuffRemaining>0 ? bottleBuffMult : 1;
   if(bottleBuffRemaining>0){ bottleBuffRemaining--; updateBottleBuffBadge(); renderBottleUI(); }
 
   const kakuMultAtSpinTime = kakuActive ? KAKU_MULT : 1;
