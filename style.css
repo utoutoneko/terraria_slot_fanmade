@@ -25,11 +25,17 @@ body{
 /* Lives in .btnrow next to the guide button, hidden (display:none, toggled in JS via
    updateThemeBtnVisibility) until the player has reached 10,000 platinum once - before that
    point there's no way to have earned a Defender Medal yet, so showing a theme-switch entry
-   point would just be clutter with nothing to spend on. */
-.themetoggle-bar{background:rgba(13,13,20,.85);border:2px solid var(--gold,#e8c14a);border-radius:0;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;image-rendering:pixelated;box-shadow:0 0 6px rgba(232,193,74,.5);}
-.themetoggle-bar img{width:80%;height:80%;object-fit:contain;image-rendering:pixelated;}
-.shoptoggle{position:absolute;left:2px;top:50%;transform:translateY(-50%);width:28px;height:28px;background:rgba(13,13,20,.85);border:2px solid #7dc84a;border-radius:0;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;image-rendering:pixelated;pointer-events:auto;box-shadow:0 0 6px rgba(125,200,74,.5);}
-.shoptoggle img{width:82%;height:82%;object-fit:contain;image-rendering:pixelated;}
+   point would just be clutter with nothing to spend on. Plain/borderless like the guide
+   button - always the Rod of Discord icon, regardless of the active theme. */
+.themetoggle-bar{background:none;border:none;padding:0;cursor:pointer;}
+.themetoggle-bar img{width:22px;height:22px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6));}
+/* The Traveling Merchant now stands on the ground among the other clickable decorations
+   (sign/table/coin pile) instead of floating as a UI button on the cabinet. */
+img.merchantnpc{position:absolute;left:10%;top:calc(var(--skyh,30vh) - 30px);width:26px;height:auto;image-rendering:pixelated;z-index:3;cursor:pointer;transition:transform .15s;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));pointer-events:auto !important;}
+img.merchantnpc:hover{transform:scale(1.15) translateY(-2px);}
+/* Purely cosmetic Traveling Merchant shop item - bobs gently near the coin pile, no interaction. */
+.mimicpet{position:absolute;left:34%;top:calc(var(--skyh,30vh) - 10px);width:16px;height:16px;image-rendering:pixelated;z-index:3;animation:petbob 2.2s ease-in-out infinite;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));}
+@keyframes petbob{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
 .themegrid{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
 .themeslot{position:relative;width:44px;height:44px;background:rgba(13,13,20,.85);border:2px solid #3a3658;border-radius:0;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;image-rendering:pixelated;transition:transform .15s;}
 .themeslot:hover{transform:scale(1.08);}
@@ -49,6 +55,8 @@ body{
 .shopitem-desc{font-size:6.5px;color:var(--paper,#ddd);opacity:.8;line-height:1.5;}
 .shopitem-buy{flex-shrink:0;background:#3a3658;border:1px solid var(--gold,#e8c14a);color:var(--paper,#ddd);font-size:7px;padding:5px 6px;cursor:pointer;white-space:nowrap;}
 .shopitem-buy:disabled{opacity:.4;cursor:default;border-color:#3a3658;}
+.shopitem-buy.toggle-on{background:var(--ok,#4a8a3a);border-color:#2c4a24;}
+.shopitem-buy.toggle-off{background:#3a3658;border-color:#666;color:#999;}
 .worldbg .band{position:absolute;left:0;right:0;background-size:64px 64px;}
 .worldbg .sky{top:0;height:var(--skyh,30vh);background-color:#3a4fb0;background-image:var(--forest-img);background-repeat:repeat-x;background-size:auto 100%;background-position:0 bottom;}
 .worldbg .sky::after{content:none;}
@@ -61,7 +69,16 @@ body{
 body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:repeating-linear-gradient(90deg, transparent 0 31px, rgba(0,0,0,.12) 31px 33px);mix-blend-mode:multiply;}
 .pixel{font-family:'Press Start 2P','DotGothic16',monospace;}
 img.spr{image-rendering:pixelated;image-rendering:crisp-edges;-webkit-user-drag:none;user-select:none;pointer-events:none;}
-.wrap{width:100%;max-width:480px;position:relative;z-index:1;}
+/* .wrap's own box spans the full topbar-to-cabinet-bottom column, and because it sits in its
+   own stacking context (position:relative + z-index:1) it was silently winning every click in
+   the transparent gaps above/around the cabinet - even where nothing of .wrap's own is drawn -
+   which meant the sun/moon and any future clickable decoration positioned in that gap (e.g. the
+   dev-log mushroom) could never actually be clicked despite pointer-events:auto on the sprite
+   itself. Punching a hole with pointer-events:none here and re-enabling it only on the real
+   interactive subtrees (.cabinet/.btnrow/.stars) lets clicks fall through to the lower-z-index
+   sky decorations behind it, the same way .scenestage/.skystage already do. */
+.wrap{width:100%;max-width:480px;position:relative;z-index:1;pointer-events:none;}
+.cabinet,.btnrow,.stars{pointer-events:auto;}
 
 .hud-strip{display:flex;justify-content:center;gap:2px;margin-bottom:6px;}
 .hud-strip img{width:20px;height:20px;image-rendering:pixelated;filter:drop-shadow(0 0 2px rgba(0,0,0,.6));}
@@ -140,7 +157,10 @@ img.coinpile:hover{transform:scale(1.15) translateY(-2px);}
 img.grasstable{position:absolute;left:46%;top:calc(var(--skyh,30vh) - 26px);width:40px;height:auto;image-rendering:pixelated;z-index:3;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));cursor:pointer;pointer-events:auto !important;}
 .grasschair{position:absolute;left:51%;top:calc(var(--skyh,30vh) - 34px);width:20px;height:auto;image-rendering:pixelated;z-index:2;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));transform:scaleX(-1);}
 .decotree{position:absolute;left:2%;top:calc(var(--skyh,30vh) - 96px);width:56px;height:96px;image-rendering:pixelated;z-index:1;filter:drop-shadow(0 3px 3px rgba(0,0,0,.4));object-fit:contain;object-position:bottom;}
-.decomushroom{position:absolute;left:80%;top:calc(var(--skyh,30vh) - 14px);width:14px;height:14px;image-rendering:pixelated;z-index:2;object-fit:contain;object-position:bottom;}
+/* img.decomushroom (not just .decomushroom) matches img.spr's specificity so this actually
+   overrides its pointer-events:none - a plain class selector alone loses that fight silently. */
+img.decomushroom{position:absolute;left:80%;top:calc(var(--skyh,30vh) - 14px);width:14px;height:14px;image-rendering:pixelated;z-index:2;object-fit:contain;object-position:bottom;cursor:pointer;pointer-events:auto !important;transition:transform .15s;}
+.decomushroom:hover{transform:scale(1.25);}
 .decosunflower{position:absolute;left:18%;top:calc(var(--skyh,30vh) - 56px);width:44px;height:56px;image-rendering:pixelated;z-index:2;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));object-fit:contain;object-position:bottom;}
 .fallingstar{position:fixed;width:16px;height:auto;image-rendering:pixelated;z-index:4;cursor:pointer;filter:drop-shadow(0 0 6px rgba(255,240,150,.8));}
 .fallingstar.landed{animation:starTwinkle 1.2s ease-in-out infinite;}

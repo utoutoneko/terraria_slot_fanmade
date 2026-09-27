@@ -65,6 +65,7 @@ function sfxGhostCatch(){ playReal("ghostCatch",0.6); }
 
 /* ================= rendering ================= */
 const JACKPOT_FEED_RATE = 0.03;      // 3% of every paid bet feeds the mystery pot
+const JACKPOT_FEED_RATE_LUCKY = 0.04; // with the Lucky Coin shop item: pool fills faster, same overall RTP
 const JACKPOT_TRIGGER_CHANCE = 0.0009; // flat chance per paid spin to pop the mystery pot
 const JACKPOT_SEED = 5000;             // reseed value (50 silver) after it pops
 const SCATTER_MIN = 3;
@@ -237,7 +238,7 @@ function renderPaytable(){
   + `<div class="streaknote"><span class="hidden-ja">🔥 連勝ボーナス:2連勝目から配当+10%、以降1連勝ごとに+10%(最大+100%)</span><span class="hidden-en">🔥 Win streak bonus: +10% payout from your 2nd consecutive win, +10% per further win (up to +100%)</span></div>`;
 }
 function updateSoundBtn(){ document.getElementById("soundBtn").classList.toggle("active", state.sound); }
-renderBalance(true); renderBet(); applyLang(); renderPaytable(); updateSoundBtn(); renderJackpot(true); updateFreeSpinBadge(); updateStreakLine(); renderBottleUI(); updateBottleBuffBadge(); updateHudStrip(); updateKakuUI(); updateThemeBtnVisibility();
+renderBalance(true); renderBet(); applyLang(); renderPaytable(); updateSoundBtn(); renderJackpot(true); updateFreeSpinBadge(); updateStreakLine(); renderBottleUI(); updateBottleBuffBadge(); updateHudStrip(); updateKakuUI(); updateThemeBtnVisibility(); updateMimicPetVisibility();
 function syncSkyHeight(){
   cabinet.style.marginTop = '34px';
   const top = cabinet.getBoundingClientRect().top;
@@ -339,8 +340,7 @@ document.getElementById("resetBtn2").onclick=()=>{
   lastRealBet=BET_STEPS[betIndex]; SYMBOLS=MIMIC_SYMBOLS; SCATTER_ID="present";
   localStorage.removeItem(SAVE_KEY);
   randomizeAllCells(); renderPaytable(); renderThemeGrid();
-  document.querySelector("#themeToggleBtn img").src = SPR.icon_theme_switch;
-  updateFreeSpinBadge(); updateBottleBuffBadge(); updateKakuUI(); renderBottleUI(); updateAutoSpinUI(); updateThemeBtnVisibility();
+  updateFreeSpinBadge(); updateBottleBuffBadge(); updateKakuUI(); renderBottleUI(); updateAutoSpinUI(); updateThemeBtnVisibility(); updateMimicPetVisibility();
   renderBalance(true); renderBet(); setMsg("リセットしました","Reset complete");
 };
 document.getElementById("torchGameBtn").onclick=()=>{ document.getElementById("ghostModal").classList.add("show"); renderGhost(); };
@@ -410,7 +410,6 @@ function switchTheme(themeId){
   randomizeAllCells();
   renderPaytable();
   renderThemeGrid();
-  document.querySelector("#themeToggleBtn img").src = SPR[def.iconKey] || SPR.icon_theme_switch;
   showToast(state.lang==="en" ? `Switched to ${def.nameEn} Slots!` : `${def.nameJa}スロットに切り替え!`);
 }
 function tryUnlockTheme(themeId){
@@ -430,6 +429,9 @@ function tryUnlockTheme(themeId){
   showToast(state.lang==="en" ? `${def.nameEn} Slots unlocked!` : `${def.nameJa}スロットを解禁した!`);
   switchTheme(themeId);
   document.getElementById("themeModal").classList.remove("show");
+}
+function updateMimicPetVisibility(){
+  document.getElementById("mimicPet").style.display = (state.mimicPetOwned && state.mimicPetOn) ? "" : "none";
 }
 function updateThemeBtnVisibility(){
   // Reaching 10,000 platinum once (the point the Defender Medal economy kicks in) is what
@@ -471,33 +473,62 @@ const SHOP_ITEMS = [
     cost:2, iconKey:"deco_bottle", type:"consumable",
     countFn:()=>state.superBottles||0, buy:()=>{ state.superBottles=(state.superBottles||0)+1; renderBottleUI(); } },
   { key:"turbo", nameJa:"ターボスピン権利証", nameEn:"Turbo Spin Pass",
-    descJa:"リールが止まるまでの時間を短縮し、1回転あたりの待ち時間を減らす(1回限り、永続)", descEn:"Shortens how long the reels take to stop, so each spin resolves faster (one-time, permanent)",
-    cost:3, iconKey:"icon_hermesboots", type:"once",
-    ownedCheck:()=>!!state.turboUnlocked, buy:()=>{ state.turboUnlocked=true; } },
+    descJa:"リールが止まるまでの時間を短縮する。購入後はいつでもON/OFF切り替え可能", descEn:"Shortens how long the reels take to stop. Toggle on/off anytime once purchased",
+    cost:3, iconKey:"icon_hermesboots", type:"toggle",
+    ownedCheck:()=>!!state.turboUnlocked, buy:()=>{ state.turboUnlocked=true; state.turboEnabled=true; },
+    isOn:()=>!!state.turboEnabled, toggle:()=>{ state.turboEnabled=!state.turboEnabled; } },
+  { key:"digpermit", nameJa:"発掘免許皆伝", nameEn:"Excavation Permit",
+    descJa:"発掘・幽霊退治ミニゲームのクールダウンを25秒→15秒に短縮する(1回限り、永続)", descEn:"Shortens both the Dig and Ghost Hunt minigame cooldowns from 25s to 15s (one-time, permanent)",
+    cost:3, iconKey:"icon_pickaxe", type:"once",
+    ownedCheck:()=>!!state.digGhostFastCooldown, buy:()=>{ state.digGhostFastCooldown=true; } },
+  { key:"mimicpet", nameJa:"相棒のミミック", nameEn:"Mimic Companion",
+    descJa:"画面についてくる小さなミミックの相棒(見た目のみ)。購入後はいつでもON/OFF切り替え可能", descEn:"A small mimic companion that tags along on screen (cosmetic only). Toggle on/off anytime once purchased",
+    cost:2, iconKey:"mimic_wood", type:"toggle",
+    ownedCheck:()=>!!state.mimicPetOwned, buy:()=>{ state.mimicPetOwned=true; state.mimicPetOn=true; updateMimicPetVisibility(); },
+    isOn:()=>!!state.mimicPetOn, toggle:()=>{ state.mimicPetOn=!state.mimicPetOn; updateMimicPetVisibility(); } },
+  { key:"luckycoin", nameJa:"ラッキーコイン", nameEn:"Lucky Coin",
+    descJa:"ミステリーポットへの積立率を3%→4%に上げる(1回限り、永続。当選確率や還元率自体は変わらず、貯まる速さとポットの大きさだけ変わる)", descEn:"Raises the Mystery Pot feed rate from 3% to 4% (one-time, permanent - doesn't change overall odds/RTP, just how fast the pool grows)",
+    cost:4, iconKey:"coin_gold", type:"once",
+    ownedCheck:()=>!!state.luckyCoinOwned, buy:()=>{ state.luckyCoinOwned=true; } },
 ];
 function renderShop(){
   const html = SHOP_ITEMS.map(item=>{
-    const owned = item.type==="once" && item.ownedCheck();
+    const owned = (item.type==="once"||item.type==="toggle") && item.ownedCheck();
     const count = item.type==="consumable" ? item.countFn() : null;
     const canAfford = (state.defenderMedals||0) >= item.cost;
     const name = state.lang==="en" ? item.nameEn : item.nameJa;
     const desc = state.lang==="en" ? item.descEn : item.descJa;
-    const btnLabel = owned ? (state.lang==="en"?"Owned":"購入済み") : (state.lang==="en"?`Buy (${item.cost})`:`購入(${item.cost}枚)`);
+    let btnLabel, btnDisabled, toggleClass="";
+    if(item.type==="toggle" && owned){
+      const on = item.isOn();
+      btnLabel = on ? "ON" : "OFF";
+      btnDisabled = false;
+      toggleClass = on ? "toggle-on" : "toggle-off";
+    } else {
+      btnLabel = owned ? (state.lang==="en"?"Owned":"購入済み") : (state.lang==="en"?`Buy (${item.cost})`:`購入(${item.cost}枚)`);
+      btnDisabled = owned || !canAfford;
+    }
     return `<div class="shopitem">
       <img class="spr" src="${SPR[item.iconKey]}">
       <div class="shopitem-info">
         <div class="shopitem-name">${name}${count!=null?` ×${count}`:""}</div>
         <div class="shopitem-desc">${desc}</div>
       </div>
-      <button class="shopitem-buy" data-key="${item.key}" ${(owned||!canAfford)?"disabled":""}>${btnLabel}</button>
+      <button class="shopitem-buy ${toggleClass}" data-key="${item.key}" ${btnDisabled?"disabled":""}>${btnLabel}</button>
     </div>`;
   }).join("");
   document.getElementById("shopItems").innerHTML = html;
-  document.querySelectorAll(".shopitem-buy").forEach(btn=>{ btn.onclick=()=>buyShopItem(btn.dataset.key); });
+  document.querySelectorAll(".shopitem-buy").forEach(btn=>{
+    btn.onclick=()=>{
+      const item = SHOP_ITEMS.find(i=>i.key===btn.dataset.key);
+      if(item.type==="toggle" && item.ownedCheck()){ item.toggle(); saveState(); renderShop(); }
+      else buyShopItem(btn.dataset.key);
+    };
+  });
 }
 function buyShopItem(key){
   const item = SHOP_ITEMS.find(i=>i.key===key); if(!item) return;
-  if(item.type==="once" && item.ownedCheck()) return;
+  if((item.type==="once"||item.type==="toggle") && item.ownedCheck()) return;
   if((state.defenderMedals||0) < item.cost){
     showToast(state.lang==="en" ? "Not enough Defender Medals" : "ディフェンダーのメダルが足りません");
     return;
@@ -618,6 +649,9 @@ document.addEventListener("click",(e)=>{
 document.getElementById("infoBtn").onclick=()=>{ document.getElementById("infoModal").classList.add("show"); };
 document.getElementById("infoClose").onclick=()=>{ document.getElementById("infoModal").classList.remove("show"); };
 document.getElementById("infoModal").onclick=(e)=>{ if(e.target.id==="infoModal") e.currentTarget.classList.remove("show"); };
+document.getElementById("decoMushroom").onclick=()=>{ document.getElementById("devlogModal").classList.add("show"); };
+document.getElementById("devlogClose").onclick=()=>{ document.getElementById("devlogModal").classList.remove("show"); };
+document.getElementById("devlogModal").onclick=(e)=>{ if(e.target.id==="devlogModal") e.currentTarget.classList.remove("show"); };
 
 let digState={tiles:null};
 function renderDig(){
@@ -625,7 +659,7 @@ function renderDig(){
   if(now < state.digCooldownUntil){ digRow.innerHTML=""; startDigCountdown(); return; }
   // Start the cooldown the moment a fresh round is opened (not on completion) so closing
   // the modal early can never be used to repeat-farm free digs.
-  state.digCooldownUntil = now + 25000; saveState();
+  state.digCooldownUntil = now + (state.digGhostFastCooldown ? 15000 : 25000); saveState();
   digState.tiles = Array.from({length:6}, ()=>({done:false}));
   digRow.innerHTML=""; digCd.textContent="";
   digState.tiles.forEach((t,idx)=>{ const el=document.createElement("div"); el.className="digtile";
@@ -683,7 +717,7 @@ function renderGhost(){
   if(now < state.ghostCooldownUntil){ ghostField.querySelectorAll(".ghosttile").forEach(el=>el.remove()); resetTorch(); startGhostCountdown(); return; }
   // Cooldown starts the moment a fresh round opens (matches the dig minigame) so closing
   // the modal early can never be used to repeat-farm free ghost catches.
-  state.ghostCooldownUntil = now + 25000; saveState();
+  state.ghostCooldownUntil = now + (state.digGhostFastCooldown ? 15000 : 25000); saveState();
   ghostField.querySelectorAll(".ghosttile").forEach(el=>el.remove()); ghostCd.textContent=""; resetTorch();
   const myToken = ++ghostRunToken;
   const fieldRect = ghostField.getBoundingClientRect();
@@ -939,14 +973,15 @@ async function spin(){
     freeSpinsRemaining -= 1; updateFreeSpinBadge();
   } else {
     state.balance-=bet; renderBalance(); lastRealBet=bet;
-    state.jackpotPool += Math.max(1, Math.floor(bet*JACKPOT_FEED_RATE)); renderJackpot();
+    const feedRate = state.luckyCoinOwned ? JACKPOT_FEED_RATE_LUCKY : JACKPOT_FEED_RATE;
+    state.jackpotPool += Math.max(1, Math.floor(bet*feedRate)); renderJackpot();
   }
   setMsg(isFree?"フリースピン中…":"回転中…", isFree?"Free spin...":"Spinning...");
   cells.forEach(c=>c.el.classList.add("spinning"));
   const flickers=cells.map(cell=>setInterval(()=>{ const sym=pickSymbol(); cell.img.src=SPR[sym.chestVariants[pickVariantIndex(sym)]]; if(Math.random()<0.25) sfxTick(); },65));
   const finalGrid=weightedFinalGrid(kakuActive);
   if(manaPurifyNextSpin){ manaPurifyNextSpin=false; }
-  const turboScale = state.turboUnlocked ? 0.55 : 1;
+  const turboScale = (state.turboUnlocked && state.turboEnabled) ? 0.55 : 1;
   const stopTimes=[700,1100,1600].map(t=>Math.round(t*turboScale));
   // cells[] is built row-major (index = row*3 + col), so column c's three cells are at indices c, 3+c, 6+c — NOT c*3..c*3+2.
   await Promise.all([0,1,2].map(c=>new Promise(res=>{
