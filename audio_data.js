@@ -87,7 +87,7 @@ function formatCoins(v){
 }
 
 const SAVE_KEY = "mimicslot_terrariajp_save_v3";
-const DEFAULT_STATE = { balance: 10*GOLD, lang:"ja", sound:true, digCooldownUntil:0, achievements:{}, jackpotPool: 5000, streak:0, bottles:0, totalSpins:0, symbolsWon:{}, starFragments:0, mana:0, totalDigs:0, freeSpinTriggers:0, jackpotWins:0, manaUsed:0, pityCount:0, kakuhenTriggers:0 };
+const DEFAULT_STATE = { balance: 10*GOLD, lang:"ja", sound:true, digCooldownUntil:0, achievements:{}, jackpotPool: 5000, streak:0, bottles:0, totalSpins:0, symbolsWon:{}, starFragments:0, mana:0, totalDigs:0, freeSpinTriggers:0, jackpotWins:0, manaUsed:0, pityCount:0, kakuhenTriggers:0, symbolWinCounts:{}, bottleUsedCount:0, biggestJackpot:0, moonClicks:0 };
 let state = loadState();
 function loadState(){ try{ const raw=localStorage.getItem(SAVE_KEY); if(!raw) return {...DEFAULT_STATE}; return {...DEFAULT_STATE, ...JSON.parse(raw)}; }catch(e){ return {...DEFAULT_STATE}; } }
 function saveState(){ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }

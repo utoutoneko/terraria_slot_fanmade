@@ -28,7 +28,7 @@ body{
 .worldbg .dirt .tex{position:absolute;inset:0;background-size:64px 64px;opacity:.85;}
 .worldbg .stone{top:calc(var(--skyh,30vh) + 12vh + 16px);bottom:0;background-color:#2a2118;z-index:2;}
 .worldbg .stone .tex{position:absolute;inset:0;background-size:64px 64px;opacity:.8;}
-.worldbg .darken{position:absolute;inset:0;background:linear-gradient(180deg, rgba(15,10,8,.1) 0%, rgba(15,10,8,.3) 30%, rgba(15,10,8,.5) 70%, rgba(15,10,8,.62) 100%);}
+.worldbg .darken{position:absolute;inset:0;background:linear-gradient(180deg, rgba(15,10,8,.1) 0%, rgba(15,10,8,.3) 30%, rgba(15,10,8,.5) 70%, rgba(15,10,8,.62) 100%);pointer-events:none;}
 body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:repeating-linear-gradient(90deg, transparent 0 31px, rgba(0,0,0,.12) 31px 33px);mix-blend-mode:multiply;}
 .pixel{font-family:'Press Start 2P','DotGothic16',monospace;}
 img.spr{image-rendering:pixelated;image-rendering:crisp-edges;-webkit-user-drag:none;user-select:none;pointer-events:none;}

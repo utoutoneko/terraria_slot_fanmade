@@ -88,12 +88,13 @@ function updateKakuUI(){
   const left = Math.max(0, PITY_LIMIT-(state.pityCount||0));
   pitylineEl.textContent = on ? "" : (state.lang==="en" ? `Bonus guaranteed in ${left} spins` : `確変まで あと${left}回転(天井)`);
 }
-function startKakuhen(reasonJa, reasonEn){
+function startKakuhen(reasonJa, reasonEn, viaPity){
   kakuhenRemaining = KAKU_SPINS; state.pityCount = 0; state.kakuhenTriggers=(state.kakuhenTriggers||0)+1;
   updateKakuUI();
   showBanner(state.lang==="en" ? "BONUS MODE!" : "確変突入!!", 1800);
   showToast(state.lang==="en" ? reasonEn : reasonJa);
   spawnParticles("rainbow",12); sfxBigReveal();
+  if(viaPity) unlockAch("kakuhenPity");
 }
 function renderBottleUI(){
   bottleCountEl.textContent = state.bottles||0;
@@ -314,15 +315,20 @@ document.getElementById("torchGameBtn").onclick=()=>{
 useBottleBtn.onclick=()=>{
   if(!(state.bottles>0) || bottleBuffRemaining>0) return;
   state.bottles -= 1; bottleBuffRemaining = 5;
+  state.bottleUsedCount = (state.bottleUsedCount||0)+1;
   renderBottleUI(); updateBottleBuffBadge(); saveState(); sfxGrab();
-  if(!state.achievements) state.achievements={};
-  if(!state.achievements.bottleUsed){ state.achievements.bottleUsed=true; saveState();
-    showToast(state.lang==="en"?"Achievement: Lucky Drinker!":"実績解除:ラッキードリンカー!");
-  } else {
+  const first = unlockAch("bottleUsed");
+  unlockAch("bottleAddict");
+  if(!first){
     showToast(state.lang==="en"?"Lucky Potion active! 2x payouts for 5 spins":"ラッキーポーション発動!5スピン配当2倍");
   }
 };
 document.getElementById("coinPile").onclick=()=>{ document.getElementById("payModal").classList.add("show"); };
+document.getElementById("skyMoon").onclick=()=>{
+  state.moonClicks = (state.moonClicks||0)+1;
+  if(state.moonClicks>=10) unlockAch("moonClicker"); else saveState();
+};
+document.getElementById("wanderBunny").onclick=()=>{ unlockAch("bunnyClicker"); };
 document.getElementById("payClose").onclick=()=>{ document.getElementById("payModal").classList.remove("show"); };
 document.getElementById("payModal").onclick=(e)=>{ if(e.target.id==="payModal") e.currentTarget.classList.remove("show"); };
 document.getElementById("digToggle").onclick=()=>{ document.getElementById("digModal").classList.add("show"); renderDig(); };
@@ -348,6 +354,37 @@ const ACHIEVEMENT_DEFS = [
   {key:"evilTwins", ja:"邪悪な双子", en:"Evil Twins"},
   {key:"spins500", ja:"スロット古参兵", en:"Slot Veteran"},
   {key:"doubleTrouble", ja:"ダブルトラブル", en:"Double Trouble"},
+  {key:"spins25", ja:"駆け出しスロッター", en:"Rookie Spinner"},
+  {key:"spins1000", ja:"千戦錬磨", en:"Slot Legend"},
+  {key:"spins2500", ja:"スロットの鬼", en:"Slot Fanatic"},
+  {key:"spins5000", ja:"伝説のスロッター", en:"Slot Icon"},
+  {key:"streak8", ja:"無敵の連勝", en:"Untouchable Streak"},
+  {key:"streak11", ja:"運命の連鎖", en:"Chain of Fate"},
+  {key:"megaWin200", ja:"超メガウィン", en:"Ultra Mega Win"},
+  {key:"digMaster100", ja:"発掘の鬼", en:"Excavation Fanatic"},
+  {key:"digMaster250", ja:"発掘王", en:"Excavation King"},
+  {key:"manaMaster", ja:"星屑マスター", en:"Star Master"},
+  {key:"jackpotStreak3", ja:"ジャックポット常連", en:"Jackpot Regular"},
+  {key:"freeSpinFan", ja:"フリースピン中毒", en:"Free Spin Addict"},
+  {key:"kakuhenFirst", ja:"初めての確変", en:"First Bonus Round"},
+  {key:"kakuhenVeteran", ja:"確変ハンター", en:"Bonus Hunter Elite"},
+  {key:"kakuhenPity", ja:"天井到達", en:"Reached the Pity Timer"},
+  {key:"iceFound", ja:"氷結の証", en:"Frozen Proof"},
+  {key:"corruptFound", ja:"腐敗の証", en:"Corruption's Mark"},
+  {key:"crimsonFound", ja:"緋色の証", en:"Crimson Mark"},
+  {key:"allBiomes", ja:"四大厄災制覇", en:"Master of Biomes"},
+  {key:"pentaLine", ja:"ペンタライン", en:"Penta Line"},
+  {key:"perfectBoard", ja:"全ライン制覇", en:"Perfect Board"},
+  {key:"balanceUltra", ja:"伝説の資産家", en:"Legendary Fortune"},
+  {key:"bigBet", ja:"大勝負", en:"High Roller"},
+  {key:"smallBet", ja:"堅実プレイ", en:"Playing It Safe"},
+  {key:"bottleHoarder", ja:"瓶コレクター", en:"Bottle Collector"},
+  {key:"bottleAddict", ja:"リキッドラック中毒", en:"Liquid Luck Addict"},
+  {key:"mimicMaster", ja:"ミミック狩りの達人", en:"Mimic Slayer"},
+  {key:"iceMaster", ja:"氷の探求者", en:"Ice Seeker"},
+  {key:"jackpotBig", ja:"大ジャックポット", en:"Big Jackpot"},
+  {key:"moonClicker", ja:"月の秘密", en:"Moon's Secret", hidden:true},
+  {key:"bunnyClicker", ja:"ウサギを捕まえた", en:"Caught the Bunny", hidden:true},
 ];
 function renderAchBubble(){
   const ach = state.achievements||{};
@@ -355,7 +392,8 @@ function renderAchBubble(){
   let html = `<span class="ach-title">${state.lang==="en"?`Achievements (${unlockedCount}/${ACHIEVEMENT_DEFS.length})`:`実績 (${unlockedCount}/${ACHIEVEMENT_DEFS.length})`}</span>`;
   ACHIEVEMENT_DEFS.forEach(d=>{
     const got = !!ach[d.key];
-    html += `<div class="${got?"":"ach-locked"}">${got?"★":"☆"} ${state.lang==="en"?d.en:d.ja}</div>`;
+    const label = (!got && d.hidden) ? "???" : (state.lang==="en"?d.en:d.ja);
+    html += `<div class="${got?"":"ach-locked"}">${got?"★":"☆"} ${label}</div>`;
   });
   achBubble.innerHTML = html;
 }
@@ -513,31 +551,79 @@ function showToast(text){
   clearTimeout(toastTimer);
   toastTimer = setTimeout(()=>toast.classList.remove("show"), 3200);
 }
-function checkAchievements(wins, totalPayout, payoutRatio){
+let achToastQueue=[]; let achToastBusy=false;
+function processAchToastQueue(){
+  if(achToastQueue.length===0){ achToastBusy=false; return; }
+  achToastBusy=true;
+  showToast(achToastQueue.shift());
+  setTimeout(processAchToastQueue, 1800);
+}
+function unlockAch(key){
+  if(!state.achievements) state.achievements = {};
+  if(state.achievements[key]) return false;
+  state.achievements[key] = true;
+  const def = ACHIEVEMENT_DEFS.find(d=>d.key===key);
+  const label = def ? (state.lang==="en"?def.en:def.ja) : key;
+  achToastQueue.push(state.lang==="en" ? `Achievement: ${label}!` : `実績解除:${label}!`);
+  if(!achToastBusy) processAchToastQueue();
+  saveState();
+  return true;
+}
+function checkAchievements(wins, totalPayout, payoutRatio, jackpotWin){
   if(!state.achievements) state.achievements = {};
   if(!state.symbolsWon) state.symbolsWon = {};
-  const ach = state.achievements;
-  let unlocked = null;
-  wins.forEach(w=>{ state.symbolsWon[w.sym.id]=true; });
-  if(!ach.firstWin){ ach.firstWin=true; unlocked = state.lang==="en"?"Achievement: First Catch!":"実績解除:はじめてのミミック捕獲!"; }
-  if(wins.some(w=>w.sym.id==="present") && !ach.jackpot){ ach.jackpot=true; unlocked = state.lang==="en"?"Achievement: Jackpot Hunter!":"実績解除:プレゼントを見つけた!"; }
-  if(wins.length>=3 && !ach.multiline){ ach.multiline=true; unlocked = state.lang==="en"?"Achievement: Multi-Line Master!":"実績解除:マルチライン職人!"; }
-  if(state.balance>=PLATINUM && !ach.richPlayer){ ach.richPlayer=true; unlocked = state.lang==="en"?"Achievement: Platinum Pouch!":"実績解除:白金貨の袋!"; }
-  if(wins.some(w=>w.sym.id==="jungle") && !ach.jungle){ ach.jungle=true; unlocked = state.lang==="en"?"Achievement: Into the Jungle!":"実績解除:ジャングルの奥へ!"; }
-  if(SYMBOLS.every(s=>state.symbolsWon[s.id]) && !ach.allSymbols){ ach.allSymbols=true; unlocked = state.lang==="en"?"Achievement: Mimic Compendium Complete!":"実績解除:ミミック図鑑コンプリート!"; }
-  if((state.totalSpins||0)>=100 && !ach.spins100){ ach.spins100=true; unlocked = state.lang==="en"?"Achievement: Seasoned Spinner!":"実績解除:百戦錬磨!"; }
-  if(state.streak>=5 && !ach.streak5){ ach.streak5=true; unlocked = state.lang==="en"?"Achievement: Unstoppable Streak!":"実績解除:不屈の連勝!"; }
-  if(payoutRatio>=100 && !ach.megaWin){ ach.megaWin=true; unlocked = state.lang==="en"?"Achievement: Mega Winner!":"実績解除:メガウィン達成!"; }
-  if((state.totalDigs||0)>=50 && !ach.digMaster){ ach.digMaster=true; unlocked = state.lang==="en"?"Achievement: Dig Master!":"実績解除:発掘マスター!"; }
-  if((state.freeSpinTriggers||0)>=5 && !ach.bonusHunter){ ach.bonusHunter=true; unlocked = state.lang==="en"?"Achievement: Bonus Hunter!":"実績解除:ボーナスハンター!"; }
-  if((state.jackpotWins||0)>=1 && !ach.mysteryRich){ ach.mysteryRich=true; unlocked = state.lang==="en"?"Achievement: Mystery Fortune!":"実績解除:ミステリー成金!"; }
-  if((state.manaUsed||0)>=1 && !ach.starMage){ ach.starMage=true; unlocked = state.lang==="en"?"Achievement: Star Mage!":"実績解除:星屑の魔術師!"; }
-  if(state.balance>=10*PLATINUM && !ach.megaRich){ ach.megaRich=true; unlocked = state.lang==="en"?"Achievement: Tycoon!":"実績解除:大富豪!"; }
-  if(wins.some(w=>w.sym.id==="hallowed") && !ach.hallowFound){ ach.hallowFound=true; unlocked = state.lang==="en"?"Achievement: Blessed Find!":"実績解除:聖なる輝き!"; }
-  if(wins.some(w=>w.sym.id==="corrupt") && wins.some(w=>w.sym.id==="crimson") && !ach.evilTwins){ ach.evilTwins=true; unlocked = state.lang==="en"?"Achievement: Evil Twins!":"実績解除:邪悪な双子!"; }
-  if((state.totalSpins||0)>=500 && !ach.spins500){ ach.spins500=true; unlocked = state.lang==="en"?"Achievement: Slot Veteran!":"実績解除:スロット古参兵!"; }
-  if(wins.length===2 && !ach.doubleTrouble){ ach.doubleTrouble=true; unlocked = state.lang==="en"?"Achievement: Double Trouble!":"実績解除:ダブルトラブル!"; }
-  if(unlocked){ showToast(unlocked); saveState(); }
+  if(!state.symbolWinCounts) state.symbolWinCounts = {};
+  wins.forEach(w=>{
+    state.symbolsWon[w.sym.id]=true;
+    state.symbolWinCounts[w.sym.id]=(state.symbolWinCounts[w.sym.id]||0)+1;
+  });
+  if(true) unlockAch("firstWin");
+  if(wins.some(w=>w.sym.id==="present")) unlockAch("jackpot");
+  if(wins.length>=3) unlockAch("multiline");
+  if(state.balance>=PLATINUM) unlockAch("richPlayer");
+  if(wins.some(w=>w.sym.id==="jungle")) unlockAch("jungle");
+  if(SYMBOLS.every(s=>state.symbolsWon[s.id])) unlockAch("allSymbols");
+  if((state.totalSpins||0)>=100) unlockAch("spins100");
+  if(state.streak>=5) unlockAch("streak5");
+  if(payoutRatio>=100) unlockAch("megaWin");
+  if((state.totalDigs||0)>=50) unlockAch("digMaster");
+  if((state.freeSpinTriggers||0)>=5) unlockAch("bonusHunter");
+  if((state.jackpotWins||0)>=1) unlockAch("mysteryRich");
+  if((state.manaUsed||0)>=1) unlockAch("starMage");
+  if(state.balance>=10*PLATINUM) unlockAch("megaRich");
+  if(state.symbolsWon.hallowed) unlockAch("hallowFound");
+  if(state.symbolsWon.corrupt && state.symbolsWon.crimson) unlockAch("evilTwins");
+  if((state.totalSpins||0)>=500) unlockAch("spins500");
+  if(wins.length===2) unlockAch("doubleTrouble");
+  // README 8番: 追加31実績
+  if((state.totalSpins||0)>=25) unlockAch("spins25");
+  if((state.totalSpins||0)>=1000) unlockAch("spins1000");
+  if((state.totalSpins||0)>=2500) unlockAch("spins2500");
+  if((state.totalSpins||0)>=5000) unlockAch("spins5000");
+  if(state.streak>=8) unlockAch("streak8");
+  if(state.streak>=11) unlockAch("streak11");
+  if(payoutRatio>=200) unlockAch("megaWin200");
+  if((state.totalDigs||0)>=100) unlockAch("digMaster100");
+  if((state.totalDigs||0)>=250) unlockAch("digMaster250");
+  if((state.manaUsed||0)>=10) unlockAch("manaMaster");
+  if((state.jackpotWins||0)>=3) unlockAch("jackpotStreak3");
+  if((state.freeSpinTriggers||0)>=20) unlockAch("freeSpinFan");
+  if((state.kakuhenTriggers||0)>=1) unlockAch("kakuhenFirst");
+  if((state.kakuhenTriggers||0)>=10) unlockAch("kakuhenVeteran");
+  if(state.symbolsWon.ice) unlockAch("iceFound");
+  if(state.symbolsWon.corrupt) unlockAch("corruptFound");
+  if(state.symbolsWon.crimson) unlockAch("crimsonFound");
+  if(["corrupt","crimson","hallowed","jungle"].every(id=>state.symbolsWon[id])) unlockAch("allBiomes");
+  if(wins.length>=5) unlockAch("pentaLine");
+  if(wins.length===8) unlockAch("perfectBoard");
+  if(state.balance>=100*PLATINUM) unlockAch("balanceUltra");
+  if((state.bottles||0)>=5) unlockAch("bottleHoarder");
+  if((state.bottleUsedCount||0)>=10) unlockAch("bottleAddict");
+  if((state.symbolWinCounts.mimic||0)>=100) unlockAch("mimicMaster");
+  if((state.symbolWinCounts.ice||0)>=50) unlockAch("iceMaster");
+  if(jackpotWin!=null){ state.biggestJackpot = Math.max(state.biggestJackpot||0, jackpotWin); }
+  if((state.biggestJackpot||0)>=PLATINUM) unlockAch("jackpotBig");
+  saveState();
 }
 let spinning=false;
 function weightedFinalGrid(boost){
@@ -554,6 +640,8 @@ async function spin(){
   } else {
     bet = currentBet();
     if(state.balance<bet){ setMsg("所持金が足りません。下の「発掘」でコインを稼ごう","Not enough coins — try digging below!"); return; }
+    if(bet===BET_STEPS[BET_STEPS.length-1]) unlockAch("bigBet");
+    if(bet===BET_STEPS[0]) unlockAch("smallBet");
   }
   spinning=true; spinBtn.disabled=true; clearLines();
   const kakuActive = kakuhenRemaining>0;
@@ -609,7 +697,7 @@ async function spin(){
   // bonus mode: never re-triggers while active; ends quietly after its last spin
   if(!kakuActive){
     if(wins.length>0 && state.streak===KAKU_STREAK_TRIGGER) startKakuhen(`${KAKU_STREAK_TRIGGER}連勝!確変突入`, `${KAKU_STREAK_TRIGGER}-win streak! Bonus mode`);
-    else if((state.pityCount||0)>=PITY_LIMIT) startKakuhen("天井到達!確変突入","Pity reached! Bonus mode");
+    else if((state.pityCount||0)>=PITY_LIMIT) startKakuhen("天井到達!確変突入","Pity reached! Bonus mode", true);
   } else if(kakuhenRemaining===0){
     showToast(state.lang==="en" ? "Bonus mode ended" : "確変終了");
   }
@@ -700,7 +788,7 @@ async function playWin(wins, extra){
   }
 
   state.balance += totalPayout; renderBalance();
-  checkAchievements(wins, totalPayout, payoutRatio);
+  checkAchievements(wins, totalPayout, payoutRatio, jackpotWin);
   await new Promise(r=>setTimeout(r, maxWait));
   clearLines();
 }
