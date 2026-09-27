@@ -77,10 +77,13 @@ const PITY_LIMIT = 100;    // paid spins without bonus mode before it is forced 
 const KAKU_STREAK_TRIGGER = 3;
 const ZENITH_ASSEMBLE_MULT = 3000; // flat bet multiplier when all 9 Zenith swords land at once
 
-let freeSpinsRemaining = 0;
-let bottleBuffRemaining = 0;
-let bottleBuffMult = 2;
-let kakuhenRemaining = 0;
+// Restored from state (not just defaulted to 0) so an in-progress bonus round, free-spin streak
+// or bottle buff survives a tab refresh instead of silently vanishing - saveState() below keeps
+// these three synced back into state on every save.
+let freeSpinsRemaining = state.freeSpinsRemaining||0;
+let bottleBuffRemaining = state.bottleBuffRemaining||0;
+let bottleBuffMult = state.bottleBuffMult||2;
+let kakuhenRemaining = state.kakuhenRemaining||0;
 function updateKakuUI(){
   const on = kakuhenRemaining>0;
   kakuBadge.classList.toggle("show", on);
@@ -263,7 +266,7 @@ updateDayNight();
 setInterval(updateDayNight, 1000);
 
 // ---- Falling star -> mana system ----
-let manaPurifyNextSpin = false;
+let manaPurifyNextSpin = !!state.manaPurifyNextSpin;
 function isCurrentlyNight(){
   const phase = (Date.now() % DAYNIGHT_CYCLE_MS) / DAYNIGHT_CYCLE_MS;
   return phase >= 0.5;

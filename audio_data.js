@@ -171,10 +171,20 @@ function formatCoins(v){
 }
 
 const SAVE_KEY = "mimicslot_terrariajp_save_v3";
-const DEFAULT_STATE = { balance: 10*GOLD, lang:"ja", sound:true, digCooldownUntil:0, ghostCooldownUntil:0, achievements:{}, jackpotPool: 5000, streak:0, bottles:0, totalSpins:0, symbolsWon:{}, starFragments:0, mana:0, totalDigs:0, freeSpinTriggers:0, jackpotWins:0, manaUsed:0, pityCount:0, kakuhenTriggers:0, symbolWinCounts:{}, bottleUsedCount:0, biggestJackpot:0, moonClicks:0, totalGhosts:0, defenderMedals:0, betIndex:3, activeTheme:"mimic", themeUnlocked:{mimic:true}, zenithAssembles:0, superBottles:0, turboUnlocked:false, autoSpinForceUnlocked:false };
+const DEFAULT_STATE = { balance: 10*GOLD, lang:"ja", sound:true, digCooldownUntil:0, ghostCooldownUntil:0, achievements:{}, jackpotPool: 5000, streak:0, bottles:0, totalSpins:0, symbolsWon:{}, starFragments:0, mana:0, totalDigs:0, freeSpinTriggers:0, jackpotWins:0, manaUsed:0, pityCount:0, kakuhenTriggers:0, symbolWinCounts:{}, bottleUsedCount:0, biggestJackpot:0, moonClicks:0, totalGhosts:0, defenderMedals:0, betIndex:3, activeTheme:"mimic", themeUnlocked:{mimic:true}, zenithAssembles:0, superBottles:0, turboUnlocked:false, autoSpinForceUnlocked:false, freeSpinsRemaining:0, bottleBuffRemaining:0, bottleBuffMult:2, kakuhenRemaining:0, manaPurifyNextSpin:false };
 let state = loadState();
 function loadState(){ try{ const raw=localStorage.getItem(SAVE_KEY); if(!raw) return {...DEFAULT_STATE}; return {...DEFAULT_STATE, ...JSON.parse(raw)}; }catch(e){ return {...DEFAULT_STATE}; } }
-function saveState(){ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }
+function saveState(){
+  // These four live as plain module-level variables in game.js for convenience, but must be
+  // synced back into state on every save so an in-progress bonus round, free-spin streak, bottle
+  // buff or mana-purify flag survives a tab refresh instead of silently resetting to 0.
+  state.freeSpinsRemaining = typeof freeSpinsRemaining!=="undefined" ? freeSpinsRemaining : state.freeSpinsRemaining;
+  state.bottleBuffRemaining = typeof bottleBuffRemaining!=="undefined" ? bottleBuffRemaining : state.bottleBuffRemaining;
+  state.bottleBuffMult = typeof bottleBuffMult!=="undefined" ? bottleBuffMult : state.bottleBuffMult;
+  state.kakuhenRemaining = typeof kakuhenRemaining!=="undefined" ? kakuhenRemaining : state.kakuhenRemaining;
+  state.manaPurifyNextSpin = typeof manaPurifyNextSpin!=="undefined" ? manaPurifyNextSpin : state.manaPurifyNextSpin;
+  localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+}
 if(!state.themeUnlocked) state.themeUnlocked = {mimic:true};
 if(THEME_DEFS[state.activeTheme]){ SYMBOLS = THEME_DEFS[state.activeTheme].symbols; SCATTER_ID = THEME_DEFS[state.activeTheme].scatterId; }
 
