@@ -23,6 +23,7 @@ document.getElementById("skyMoon").src = SPR.deco_moon;
 document.getElementById("standSign").src = SPR.deco_sign;
 document.getElementById("wanderBunny").src = SPR.deco_bunny;
 document.getElementById("bottleSlotIcon").src = SPR.deco_bottle;
+document.getElementById("autoSpinIcon").src = SPR.deco_stressball;
 document.getElementById("digPickIcon").src = SPR.icon_pickaxe;
 
 document.getElementById("dirtTex").style.backgroundImage = `url(${SPR.wall_dirt})`;
