@@ -262,6 +262,14 @@ img.standsign{position:fixed;top:calc(var(--skyh,30vh) - 22px);left:70%;width:26
 .digtile.done{cursor:default;filter:brightness(.5);}
 .digtile .rev{animation:popreveal .5s cubic-bezier(.3,1.9,.4,1) both;font-size:16px;}
 .digcd{text-align:center;font-size:8px;opacity:.75;margin-top:6px;}
+.ghostfield{position:relative;height:140px;background-color:#14101c;background-image:radial-gradient(ellipse at 50% 100%, rgba(80,60,120,.35), transparent 70%);border:2px solid #241a0e;overflow:hidden;}
+.ghosttile{position:absolute;width:32px;height:32px;transform:translate(-50%,-50%);cursor:pointer;animation:ghostpop .22s ease-out both;}
+.ghosttile img{width:100%;height:100%;filter:drop-shadow(0 0 4px rgba(200,220,255,.6));}
+.ghosttile.caught{animation:ghostcaught .35s ease-in forwards;pointer-events:none;}
+.ghosttile.missed{animation:ghostmissed .3s ease-in forwards;pointer-events:none;}
+@keyframes ghostpop{0%{transform:translate(-50%,-50%) scale(.3);opacity:0;}100%{transform:translate(-50%,-50%) scale(1);opacity:1;}}
+@keyframes ghostcaught{0%{transform:translate(-50%,-50%) scale(1);opacity:1;}100%{transform:translate(-50%,-50%) scale(1.6);opacity:0;}}
+@keyframes ghostmissed{0%{transform:translate(-50%,-50%) scale(1);opacity:.9;}100%{transform:translate(-50%,-50%) scale(.7) translateY(10px);opacity:0;}}
 
 .fxlayer{position:fixed;inset:0;pointer-events:none;z-index:50;overflow:hidden;}
 .flashlayer{position:fixed;inset:0;pointer-events:none;z-index:45;opacity:0;}

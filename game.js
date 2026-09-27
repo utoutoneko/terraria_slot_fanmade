@@ -309,9 +309,9 @@ document.getElementById("resetBtn2").onclick=()=>{
   betIndex=3; localStorage.removeItem(SAVE_KEY);
   renderBalance(true); renderBet(); setMsg("リセットしました","Reset complete");
 };
-document.getElementById("torchGameBtn").onclick=()=>{
-  showToast(state.lang==="en" ? "Ghost Hunt minigame coming soon!" : "幽霊退治ミニゲーム、近日公開!");
-};
+document.getElementById("torchGameBtn").onclick=()=>{ document.getElementById("ghostModal").classList.add("show"); renderGhost(); };
+document.getElementById("ghostClose").onclick=()=>{ document.getElementById("ghostModal").classList.remove("show"); };
+document.getElementById("ghostModal").onclick=(e)=>{ if(e.target.id==="ghostModal") e.currentTarget.classList.remove("show"); };
 let autoSpinOn = false;
 const autoSpinBtn = document.getElementById("autoSpinBtn");
 function updateAutoSpinUI(){ autoSpinBtn.classList.toggle("autospin-on", autoSpinOn); }
@@ -480,6 +480,63 @@ function startDigCountdown(){
   digTimerId=setInterval(()=>{ const remain=state.digCooldownUntil-Date.now();
     if(remain<=0){ clearInterval(digTimerId); digCd.textContent=""; renderDig(); return; }
     digCd.innerHTML = state.lang==="en" ? `Next dig in ${Math.ceil(remain/1000)}s` : `次の発掘まで ${Math.ceil(remain/1000)}秒`;
+  }, 250);
+}
+
+const ghostField = document.getElementById("ghostField"), ghostCd = document.getElementById("ghostCd");
+let ghostState={round:0,maxRounds:8,caught:0,earned:0};
+let ghostRunToken=0;
+function renderGhost(){
+  const now=Date.now();
+  if(now < state.ghostCooldownUntil){ ghostField.innerHTML=""; startGhostCountdown(); return; }
+  // Cooldown starts the moment a fresh round opens (matches the dig minigame) so closing
+  // the modal early can never be used to repeat-farm free ghost catches.
+  state.ghostCooldownUntil = now + 25000; saveState();
+  ghostField.innerHTML=""; ghostCd.textContent="";
+  ghostState = {round:0, maxRounds:8, caught:0, earned:0};
+  const myToken = ++ghostRunToken;
+  spawnGhostRound(myToken);
+}
+function spawnGhostRound(myToken){
+  if(myToken!==ghostRunToken) return; // modal was reopened/closed mid-round; abandon the stale chain
+  if(ghostState.round>=ghostState.maxRounds){ finishGhostRound(); return; }
+  ghostState.round++;
+  const el=document.createElement("div"); el.className="ghosttile";
+  const x=10+Math.random()*80, y=14+Math.random()*72;
+  el.style.left=x+"%"; el.style.top=y+"%";
+  const img=document.createElement("img"); img.className="spr"; img.src=SPR.deco_ghost; el.appendChild(img);
+  let resolved=false;
+  const life=800+Math.random()*500;
+  const timer=setTimeout(()=>{
+    if(resolved) return; resolved=true;
+    el.classList.add("missed"); setTimeout(()=>{ el.remove(); spawnGhostRound(myToken); },260);
+  }, life);
+  el.onclick=()=>{
+    if(resolved) return; resolved=true; clearTimeout(timer);
+    el.classList.add("caught"); sfxGrab();
+    state.totalGhosts=(state.totalGhosts||0)+1;
+    const roll=Math.random(); let gain;
+    if(roll<0.55) gain=8+Math.floor(Math.random()*40);
+    else if(roll<0.90) gain=SILVER*(1+Math.floor(Math.random()*7));
+    else gain=SILVER*(6+Math.floor(Math.random()*12));
+    state.balance+=gain; renderBalance(); saveState(); if(gain>=SILVER) sfxGrab(); else sfxCoin(0.8);
+    ghostState.caught++; ghostState.earned+=gain;
+    setTimeout(()=>{ el.remove(); spawnGhostRound(myToken); },260);
+  };
+  ghostField.appendChild(el);
+}
+function finishGhostRound(){
+  ghostCd.innerHTML = state.lang==="en"
+    ? `Caught ${ghostState.caught}/${ghostState.maxRounds} ghosts — +${formatCoins(ghostState.earned)}`
+    : `${ghostState.maxRounds}匹中${ghostState.caught}匹退治 — +${formatCoins(ghostState.earned)}`;
+  setTimeout(startGhostCountdown,1400);
+}
+let ghostTimerId=null;
+function startGhostCountdown(){
+  clearInterval(ghostTimerId);
+  ghostTimerId=setInterval(()=>{ const remain=state.ghostCooldownUntil-Date.now();
+    if(remain<=0){ clearInterval(ghostTimerId); ghostCd.textContent=""; renderGhost(); return; }
+    ghostCd.innerHTML = state.lang==="en" ? `Next hunt in ${Math.ceil(remain/1000)}s` : `次の退治まで ${Math.ceil(remain/1000)}秒`;
   }, 250);
 }
 
