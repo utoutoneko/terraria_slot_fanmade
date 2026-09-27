@@ -54,6 +54,7 @@ img.spr{image-rendering:pixelated;image-rendering:crisp-edges;-webkit-user-drag:
 .invslot.spinslot img{width:78%;height:78%;filter:drop-shadow(0 0 3px rgba(255,220,140,.6));}
 .invslot.autospin-on{filter:drop-shadow(0 0 4px #7dff4a);}
 .invslot.autospin-on img{filter:drop-shadow(0 0 3px #7dff4a);}
+.invslot.locked img{opacity:.35;filter:grayscale(.8);}
 .slotlabel{font-family:'Press Start 2P',monospace;font-size:15px;color:var(--paper);}
 .betdisplay{max-width:56px;}
 .slotamt{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--paper);}
@@ -84,15 +85,16 @@ img.spr{image-rendering:pixelated;image-rendering:crisp-edges;-webkit-user-drag:
 
 .wanderbunny{position:absolute;top:calc(var(--skyh,30vh) - 14px);left:-30px;width:18px;height:auto;image-rendering:pixelated;z-index:2;animation:hopright 22s cubic-bezier(.4,0,.6,1) infinite;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));transform:translateX(0) scaleX(-1);}
 @keyframes hopright{
-  0%{transform:translateX(0) scaleX(-1);}
+  0%{transform:translateX(0) scaleX(-1);opacity:0;}
+  3%{opacity:1;}
   8%{transform:translateX(15vw) scaleX(-1);}
   20%{transform:translateX(15vw) scaleX(-1);}
   30%{transform:translateX(38vw) scaleX(-1);}
   46%{transform:translateX(38vw) scaleX(-1);}
   58%{transform:translateX(60vw) scaleX(-1);}
   59%{transform:translateX(60vw) scaleX(-1);}
-  78%{transform:translateX(90vw) scaleX(-1);}
-  100%{transform:translateX(90vw) scaleX(-1);}
+  78%{transform:translateX(90vw) scaleX(-1);opacity:1;}
+  100%{transform:translateX(90vw) scaleX(-1);opacity:0;}
 }
 img.coinpile{position:fixed;top:calc(var(--skyh,30vh) - 20px);left:22%;width:42px;height:auto;image-rendering:pixelated;z-index:3;cursor:pointer;transition:transform .15s;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));pointer-events:auto !important;}
 img.coinpile:hover{transform:scale(1.15) translateY(-2px);}

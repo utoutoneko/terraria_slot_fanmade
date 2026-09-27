@@ -312,9 +312,15 @@ document.getElementById("resetBtn2").onclick=()=>{
 document.getElementById("torchGameBtn").onclick=()=>{ document.getElementById("ghostModal").classList.add("show"); renderGhost(); };
 document.getElementById("ghostClose").onclick=()=>{ document.getElementById("ghostModal").classList.remove("show"); };
 document.getElementById("ghostModal").onclick=(e)=>{ if(e.target.id==="ghostModal") e.currentTarget.classList.remove("show"); };
+const AUTOSPIN_UNLOCK_SPINS = 50;
+function isAutoSpinUnlocked(){ return (state.totalSpins||0) >= AUTOSPIN_UNLOCK_SPINS; }
 let autoSpinOn = false;
 const autoSpinBtn = document.getElementById("autoSpinBtn");
-function updateAutoSpinUI(){ autoSpinBtn.classList.toggle("autospin-on", autoSpinOn); }
+function updateAutoSpinUI(){
+  autoSpinBtn.classList.toggle("autospin-on", autoSpinOn);
+  autoSpinBtn.classList.toggle("locked", !isAutoSpinUnlocked());
+}
+updateAutoSpinUI();
 async function runAutoSpin(){
   while(autoSpinOn){
     const bet = freeSpinsRemaining>0 ? lastRealBet : currentBet();
@@ -329,6 +335,11 @@ async function runAutoSpin(){
   }
 }
 autoSpinBtn.onclick=()=>{
+  if(!isAutoSpinUnlocked()){
+    const left = AUTOSPIN_UNLOCK_SPINS - (state.totalSpins||0);
+    setMsg(`ストレスボールはあと${left}回スピンすると使えるようになる`, `Spin ${left} more times to unlock auto-spin`);
+    return;
+  }
   autoSpinOn = !autoSpinOn;
   updateAutoSpinUI();
   if(autoSpinOn) runAutoSpin();
@@ -711,6 +722,8 @@ function weightedFinalGrid(boost){
 async function spin(){
   if(spinning) return;
   state.totalSpins=(state.totalSpins||0)+1;
+  if(state.totalSpins===AUTOSPIN_UNLOCK_SPINS){ showToast(state.lang==="en"?"Auto-spin unlocked! (stress ball)":"ストレスボール(自動スピン)が使えるようになった!"); }
+  updateAutoSpinUI();
   const isFree = freeSpinsRemaining>0;
   let bet;
   if(isFree){
