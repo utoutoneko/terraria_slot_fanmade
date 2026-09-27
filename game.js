@@ -317,8 +317,8 @@ setInterval(()=>{
   setTimeout(()=>d.remove(), dur+50);
 }, 500);
 
-document.getElementById("betUp").onclick=()=>{ betIndex=Math.min(BET_STEPS.length-1,betIndex+1); renderBet(); sfxTick(); };
-document.getElementById("betDown").onclick=()=>{ betIndex=Math.max(0,betIndex-1); renderBet(); sfxTick(); };
+document.getElementById("betUp").onclick=()=>{ betIndex=Math.min(BET_STEPS.length-1,betIndex+1); state.betIndex=betIndex; saveState(); renderBet(); sfxTick(); };
+document.getElementById("betDown").onclick=()=>{ betIndex=Math.max(0,betIndex-1); state.betIndex=betIndex; saveState(); renderBet(); sfxTick(); };
 document.getElementById("langBtn").onclick=()=>{ state.lang=state.lang==="en"?"ja":"en"; applyLang(); saveState(); renderPaytable(); updateKakuUI(); };
 document.getElementById("soundBtn").onclick=()=>{ state.sound=!state.sound; updateSoundBtn(); saveState(); if(state.sound) sfxTick(); };
 document.getElementById("resetBtn2").onclick=()=>{
@@ -380,7 +380,10 @@ document.getElementById("skyMoon").onclick=()=>{
   if(state.moonClicks>=10) unlockAch("moonClicker"); else saveState();
 };
 document.getElementById("wanderBunny").onclick=()=>{ unlockAch("bunnyClicker"); };
-document.getElementById("themeMimic").onclick=()=>{ /* already the active theme */ };
+document.getElementById("themeToggleBtn").onclick=()=>{ document.getElementById("themeModal").classList.add("show"); };
+document.getElementById("themeModalClose").onclick=()=>{ document.getElementById("themeModal").classList.remove("show"); };
+document.getElementById("themeModal").onclick=(e)=>{ if(e.target.id==="themeModal") e.currentTarget.classList.remove("show"); };
+document.getElementById("themeMimic").onclick=()=>{ document.getElementById("themeModal").classList.remove("show"); };
 ["themeZombie","themeZenith","themeSlime","themeMore"].forEach(id=>{
   document.getElementById(id).onclick=()=>{ showToast(state.lang==="en"?"Coming soon!":"近日公開!"); };
 });
@@ -441,16 +444,29 @@ const ACHIEVEMENT_DEFS = [
   {key:"moonClicker", ja:"月の秘密", en:"Moon's Secret", hidden:true},
   {key:"bunnyClicker", ja:"ウサギを捕まえた", en:"Caught the Bunny", hidden:true},
 ];
+const ACH_PAGE_SIZE = 10;
+let achPage = 0;
 function renderAchBubble(){
   const ach = state.achievements||{};
   const unlockedCount = ACHIEVEMENT_DEFS.filter(d=>ach[d.key]).length;
+  const pageCount = Math.ceil(ACHIEVEMENT_DEFS.length/ACH_PAGE_SIZE);
+  achPage = Math.max(0, Math.min(achPage, pageCount-1));
   let html = `<span class="ach-title">${state.lang==="en"?`Achievements (${unlockedCount}/${ACHIEVEMENT_DEFS.length})`:`実績 (${unlockedCount}/${ACHIEVEMENT_DEFS.length})`}</span>`;
-  ACHIEVEMENT_DEFS.forEach(d=>{
+  html += `<div class="ach-list">`;
+  ACHIEVEMENT_DEFS.slice(achPage*ACH_PAGE_SIZE, achPage*ACH_PAGE_SIZE+ACH_PAGE_SIZE).forEach(d=>{
     const got = !!ach[d.key];
     const label = (!got && d.hidden) ? "???" : (state.lang==="en"?d.en:d.ja);
     html += `<div class="${got?"":"ach-locked"}">${got?"★":"☆"} ${label}</div>`;
   });
+  html += `</div>`;
+  html += `<div class="ach-pager">
+    <button class="ach-pagebtn" id="achPrev" ${achPage===0?"disabled":""}>&lt;</button>
+    <span class="ach-pagenum">${achPage+1} / ${pageCount}</span>
+    <button class="ach-pagebtn" id="achNext" ${achPage>=pageCount-1?"disabled":""}>&gt;</button>
+  </div>`;
   achBubble.innerHTML = html;
+  document.getElementById("achPrev").onclick=(e)=>{ e.stopPropagation(); achPage--; renderAchBubble(); };
+  document.getElementById("achNext").onclick=(e)=>{ e.stopPropagation(); achPage++; renderAchBubble(); };
 }
 document.getElementById("grassTable").onclick=(e)=>{
   renderChatLog();

@@ -10,6 +10,15 @@
 <body>
 <div class="worldbg" id="worldbg">
   <div class="band sky"></div>
+  <!-- Sun/moon live in their own low-z stage nested INSIDE worldbg (not the higher-z #sceneStage
+       below) so the dirt/stone bands - siblings within this same stacking context - can still
+       paint over them and hide them below the horizon during rise/set, exactly like before the
+       PC/mobile centering fix. Still centered to the 480px-max column so the day/night arc lines
+       up with the cabinet on wide screens. -->
+  <div class="skystage" id="skyStage">
+    <img class="skycelestial sun" id="skySun" alt="">
+    <img class="skycelestial moon" id="skyMoon" alt="">
+  </div>
   <div class="grassline"><div class="grasstufts" id="grassTufts"></div></div>
   <div class="band dirt"><div class="tex" id="dirtTex"></div></div>
   <div class="band stone"><div class="tex" id="stoneTex"></div></div>
@@ -17,12 +26,10 @@
 </div>
 <!-- Sky/ground bands above stay full-bleed inside #worldbg (wide backdrop looks good at any
      width). This stage is a separate, higher-z-index sibling of both #worldbg and .wrap so its
-     clickable sprites (sign/table/coinpile/moon/bunny) always win hit-testing over the cabinet,
+     clickable sprites (sign/table/coinpile/bunny) always win hit-testing over the cabinet,
      the same way they did back when they were position:fixed - but centered to the same
      480px-max column as the cabinet so they stay aligned with it on wide desktop screens. -->
 <div class="scenestage" id="sceneStage">
-  <img class="skycelestial sun" id="skySun" alt="">
-  <img class="skycelestial moon" id="skyMoon" alt="">
   <img class="wanderbunny" id="wanderBunny" alt="">
   <img class="spr decotree" id="decoTree" alt="">
   <img class="spr decomushroom" id="decoMushroom" alt="">
@@ -31,13 +38,7 @@
   <img class="spr standsign" id="standSign" alt="">
   <img class="spr grasstable" id="grassTable" alt="">
   <img class="spr coinpile" id="coinPile" alt="">
-  <div class="themebar" id="themeBar">
-    <button class="themeslot active" id="themeMimic" title="Mimic Slots"><img class="spr" src=""></button>
-    <button class="themeslot locked" id="themeZombie" title="Zombie (coming soon)"><img class="spr" src=""></button>
-    <button class="themeslot locked" id="themeZenith" title="Zenith (coming soon)"><img class="spr" src=""></button>
-    <button class="themeslot locked" id="themeSlime" title="Slime (coming soon)"><img class="spr" src=""></button>
-    <button class="themeslot locked themeslot-more" id="themeMore" title="More themes (coming soon)">+</button>
-  </div>
+  <button class="themetoggle" id="themeToggleBtn" title="Switch slot theme"><img class="spr" src=""></button>
 </div>
 <div id="starLayer"></div>
 <div class="fxlayer" id="fxlayer"></div>
@@ -135,6 +136,19 @@
       <h4><span class="hidden-ja">真っ暗な中、松明代わりの指/カーソルで幽霊を照らして退治しよう!</span><span class="hidden-en">It's pitch dark — move your torch to find and catch the ghosts!</span></h4>
       <div class="ghostfield" id="ghostField"><div class="ghostfog" id="ghostFog"></div></div>
       <div class="digcd" id="ghostCd"></div>
+    </div>
+  </div>
+</div>
+<div class="modalbackdrop" id="themeModal">
+  <div class="modalbox">
+    <button class="modalclose" id="themeModalClose">✕</button>
+    <h4 class="pixel" style="text-align:center;color:var(--gold);font-size:9px;margin:0 0 10px;"><span class="hidden-ja">スロットを切り替え</span><span class="hidden-en">Switch Slot Theme</span></h4>
+    <div class="themegrid" id="themeGrid">
+      <button class="themeslot active" id="themeMimic" title="Mimic Slots"><img class="spr" src=""></button>
+      <button class="themeslot locked" id="themeZombie" title="Zombie (coming soon)"><img class="spr" src=""></button>
+      <button class="themeslot locked" id="themeZenith" title="Zenith (coming soon)"><img class="spr" src=""></button>
+      <button class="themeslot locked" id="themeSlime" title="Slime (coming soon)"><img class="spr" src=""></button>
+      <button class="themeslot locked themeslot-more" id="themeMore" title="More themes (coming soon)">+</button>
     </div>
   </div>
 </div>

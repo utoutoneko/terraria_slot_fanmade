@@ -25,6 +25,7 @@ document.getElementById("wanderBunny").src = SPR.deco_bunny;
 document.getElementById("bottleSlotIcon").src = SPR.deco_bottle;
 document.getElementById("faviconLink").href = SPR.deco_tree;
 document.querySelector("#themeMimic img").src = SPR.mimic_gold;
+document.querySelector("#themeToggleBtn img").src = SPR.mimic_gold;
 document.querySelector("#themeZombie img").src = SPR.icon_theme_zombie;
 document.querySelector("#themeZenith img").src = SPR.icon_theme_zenith;
 document.querySelector("#themeSlime img").src = SPR.icon_theme_slime;
@@ -93,14 +94,14 @@ function formatCoins(v){
 }
 
 const SAVE_KEY = "mimicslot_terrariajp_save_v3";
-const DEFAULT_STATE = { balance: 10*GOLD, lang:"ja", sound:true, digCooldownUntil:0, ghostCooldownUntil:0, achievements:{}, jackpotPool: 5000, streak:0, bottles:0, totalSpins:0, symbolsWon:{}, starFragments:0, mana:0, totalDigs:0, freeSpinTriggers:0, jackpotWins:0, manaUsed:0, pityCount:0, kakuhenTriggers:0, symbolWinCounts:{}, bottleUsedCount:0, biggestJackpot:0, moonClicks:0, totalGhosts:0, defenderMedals:0 };
+const DEFAULT_STATE = { balance: 10*GOLD, lang:"ja", sound:true, digCooldownUntil:0, ghostCooldownUntil:0, achievements:{}, jackpotPool: 5000, streak:0, bottles:0, totalSpins:0, symbolsWon:{}, starFragments:0, mana:0, totalDigs:0, freeSpinTriggers:0, jackpotWins:0, manaUsed:0, pityCount:0, kakuhenTriggers:0, symbolWinCounts:{}, bottleUsedCount:0, biggestJackpot:0, moonClicks:0, totalGhosts:0, defenderMedals:0, betIndex:3 };
 let state = loadState();
 function loadState(){ try{ const raw=localStorage.getItem(SAVE_KEY); if(!raw) return {...DEFAULT_STATE}; return {...DEFAULT_STATE, ...JSON.parse(raw)}; }catch(e){ return {...DEFAULT_STATE}; } }
 function saveState(){ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }
 
 // 1 / 2.5 / 5 per decade, from 10 copper up to 100 platinum (100,000,000 copper)
 const BET_STEPS = (()=>{ const a=[]; for(let d=10; d<=10000000; d*=10){ a.push(d, d*2.5, d*5); } a.push(100000000); return a; })();
-let betIndex = 3;
+let betIndex = state.betIndex!=null ? state.betIndex : 3;
 function currentBet(){ return BET_STEPS[betIndex]; }
 
 const grid=document.getElementById("grid"), balanceBar=document.getElementById("balanceBar"),
