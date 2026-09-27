@@ -680,6 +680,31 @@ document.getElementById("decoMushroom").onclick=()=>{ document.getElementById("d
 document.getElementById("devlogClose").onclick=()=>{ document.getElementById("devlogModal").classList.remove("show"); };
 document.getElementById("devlogModal").onclick=(e)=>{ if(e.target.id==="devlogModal") e.currentTarget.classList.remove("show"); };
 
+// Secret, entirely undiscoverable-by-UI strategy guide viewer: no button, no menu entry, no
+// hint anywhere in the game (not even the dev diary). Only reachable by typing this exact
+// word anywhere on the page. Renders the same guide page published as an Artifact, embedded
+// verbatim via SECRET_GUIDE_HTML (secretguide_data.js) so it works standalone with no network
+// dependency on claude.ai.
+(function setupSecretGuide(){
+  const CODE = "utoutoneko";
+  let buffer = "";
+  document.addEventListener("keydown", (e)=>{
+    if(e.key.length !== 1) return; // ignore Shift/Enter/arrows/etc.
+    buffer = (buffer + e.key.toLowerCase()).slice(-CODE.length);
+    if(buffer === CODE){
+      const frame = document.getElementById("secretGuideFrame");
+      if(!frame.src && !frame.hasAttribute("data-loaded")){
+        frame.srcdoc = SECRET_GUIDE_HTML;
+        frame.setAttribute("data-loaded","1");
+      }
+      document.getElementById("secretGuideModal").classList.add("show");
+      buffer = "";
+    }
+  });
+  document.getElementById("secretGuideClose").onclick=()=>{ document.getElementById("secretGuideModal").classList.remove("show"); };
+  document.getElementById("secretGuideModal").onclick=(e)=>{ if(e.target.id==="secretGuideModal") e.currentTarget.classList.remove("show"); };
+})();
+
 let digState={tiles:null};
 function renderDig(){
   const now=Date.now();

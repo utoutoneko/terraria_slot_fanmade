@@ -52,7 +52,7 @@
 <div class="wrap">
   <div class="topbar">
     <div class="title pixel">
-      MIMIC SLOTS
+      TERRARIA SLOTS
     </div>
     <div class="btnrow">
       <button class="guidebtn-plain" id="infoBtn"><img class="spr" id="guideIcon" style="width:22px;height:20px;"></button>
@@ -203,11 +203,21 @@
     </div>
   </div>
 </div>
+<!-- No button, no menu entry, no mention anywhere in the guide or dev diary links here on
+     purpose - this is only reachable by typing a specific word anywhere on the page (see
+     game.js). Intentionally undiscoverable through normal play. -->
+<div class="modalbackdrop" id="secretGuideModal">
+  <div class="modalbox secretguidebox">
+    <button class="modalclose" id="secretGuideClose">✕</button>
+    <iframe id="secretGuideFrame" class="secretguideframe"></iframe>
+  </div>
+</div>
 <div class="achbubble pixel" id="achBubble"></div>
 <div class="chatpanel pixel" id="chatPanel"></div>
 
 <script src="sprites_data.js"></script>
 <script src="audio_data.js"></script>
+<script src="secretguide_data.js"></script>
 <script src="game.js"></script>
 </body>
 </html>
