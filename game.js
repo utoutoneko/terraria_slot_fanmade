@@ -157,12 +157,14 @@ function paintBalance(v){
 function renderBet(){ const {p,g,s,c}=toCoins(currentBet()); let parts=[]; if(p) parts.push(p+"P"); if(g) parts.push(g+"G"); if(s) parts.push(s+"S"); if(c) parts.push(c+"C"); betAmt.textContent=parts.join(" ")||"0"; }
 function applyLang(){ document.body.classList.toggle("lang-en", state.lang==="en"); document.getElementById("langBtn").textContent = state.lang==="en"?"JA":"EN"; }
 let chatLog = [];
-function setMsg(ja,en,comboJa,comboEn){
+function setMsg(ja,en,comboJa,comboEn,log){
   msgline.innerHTML = `<span class="hidden-ja">${ja}</span><span class="hidden-en">${en}</span>` + (comboJa? `<span class="combo hidden-ja">${comboJa}</span><span class="combo hidden-en">${comboEn}</span>`:"");
-  const line = state.lang==="en" ? en : ja;
-  chatLog.push(line);
-  if(chatLog.length>30) chatLog.shift();
-  if(chatPanel && chatPanel.classList.contains("show")) renderChatLog();
+  if(log){
+    const line = state.lang==="en" ? en : ja;
+    chatLog.push(line);
+    if(chatLog.length>30) chatLog.shift();
+    if(chatPanel && chatPanel.classList.contains("show")) renderChatLog();
+  }
 }
 function renderChatLog(){
   chatPanel.innerHTML = chatLog.slice().reverse().map(l=>`<div class="chatline">${l}</div>`).join("");
@@ -626,7 +628,7 @@ async function playWin(wins, extra){
 
     const comboJa=wins.length>1?`${wins.length}ライン同時ヒット!`:"";
     const comboEn=wins.length>1?`${wins.length}-LINE COMBO!`:"";
-    setMsg(uniqueSymbols.map(s=>s.nameJa).join("+")+` そろい! 合計+${formatCoins(totalPayout)}`, uniqueSymbols.map(s=>s.nameEn).join("+")+` match! Total +${formatCoins(totalPayout)}`, comboJa, comboEn);
+    setMsg(uniqueSymbols.map(s=>s.nameJa).join("+")+` そろい! 合計+${formatCoins(totalPayout)}`, uniqueSymbols.map(s=>s.nameEn).join("+")+` match! Total +${formatCoins(totalPayout)}`, comboJa, comboEn, true);
 
     uniqueSymbols.forEach(sym=>{
       if(sym.fx==="coin"){ shakeCabinet("shake-sm"); spawnParticles("coin",14); sfxCoin(1); maxWait=Math.max(maxWait,700); }
@@ -646,7 +648,7 @@ async function playWin(wins, extra){
     });
     if(wins.length>1) showBanner((state.lang==="en"?wins.length+"-LINE COMBO!":wins.length+"ライン コンボ!"), 1400);
   } else if(jackpotWin>0 || triggeredFreeSpins){
-    setMsg(state.lang==="en"?"Bonus triggered!":"ボーナス発生!", state.lang==="en"?"Bonus triggered!":"ボーナス発生!");
+    setMsg(state.lang==="en"?"Bonus triggered!":"ボーナス発生!", state.lang==="en"?"Bonus triggered!":"ボーナス発生!", null, null, true);
   }
 
   if(jackpotWin>0){
