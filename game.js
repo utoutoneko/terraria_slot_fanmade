@@ -111,7 +111,11 @@ function updateBottleBuffBadge(){
   else { bottleBuffBadge.classList.remove("show"); }
   updateHudStrip();
 }
-let lastRealBet = BET_STEPS[betIndex]*SILVER;
+// Fallback only matters if free spins are somehow active before any real spin this session -
+// which is now reachable since freeSpinsRemaining survives a reload (see saveState()). The old
+// "*SILVER" here was a latent bug (100x too large) that stayed dormant only because this path
+// used to be unreachable before that persistence fix.
+let lastRealBet = state.lastRealBet || BET_STEPS[betIndex];
 
 let displayedJackpot = state.jackpotPool;
 let jackpotAnimGen=0;
