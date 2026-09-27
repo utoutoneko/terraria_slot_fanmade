@@ -158,7 +158,23 @@ function updateHudStrip(){
 
 let displayedBalance=state.balance;
 let balanceAnimGen=0;
+const MEDAL_RATE = 1000*PLATINUM, PLATINUM_KEEP_ON_CONVERT = 1000*PLATINUM, PLATINUM_AUTOCONVERT_AT = 10000*PLATINUM;
+function checkPlatinumAutoConvert(){
+  // Terraria caps each coin denomination at 9999, so a platinum count can't realistically climb
+  // forever. Once balance would hit 10,000 platinum, auto-convert everything above a 1,000
+  // platinum reserve into Defender Medals (1,000 platinum = 1 medal) - a real Terraria currency,
+  // repurposed here as the shop currency for unlocking other slot themes.
+  if(state.balance < PLATINUM_AUTOCONVERT_AT) return;
+  const convertible = state.balance - PLATINUM_KEEP_ON_CONVERT;
+  const medals = Math.floor(convertible/MEDAL_RATE);
+  if(medals<=0) return;
+  state.balance -= medals*MEDAL_RATE;
+  state.defenderMedals = (state.defenderMedals||0)+medals;
+  saveState();
+  showToast(state.lang==="en" ? `Coins capped out - converted to +${medals} Defender Medal${medals>1?"s":""}!` : `所持金が上限に達し、防衛メダル+${medals}枚に変換されました!`);
+}
 function renderBalance(instant){
+  checkPlatinumAutoConvert();
   const target=state.balance;
   balanceAnimGen++;
   const myGen=balanceAnimGen;
@@ -174,13 +190,15 @@ function renderBalance(instant){
   requestAnimationFrame(step);
 }
 let lastCoins={p:-1,g:-1,s:-1,c:-1};
+let toastTimer=null; // declared early: renderBalance()'s auto-convert check can call showToast() during page-load init
 function paintBalance(v){
   const {p,g,s,c}=toCoins(Math.max(0,v));
   balanceBar.innerHTML = `
     <div class="coin" id="coinP"><img class="spr" src="${SPR.coin_platinum}" style="width:17px;height:20px">${p}</div>
     <div class="coin" id="coinG"><img class="spr" src="${SPR.coin_gold}" style="width:15px;height:20px">${g}</div>
     <div class="coin" id="coinS"><img class="spr" src="${SPR.coin_silver}" style="width:15px;height:17px">${s}</div>
-    <div class="coin" id="coinC"><img class="spr" src="${SPR.coin_copper}" style="width:15px;height:15px">${c}</div>`;
+    <div class="coin" id="coinC"><img class="spr" src="${SPR.coin_copper}" style="width:15px;height:15px">${c}</div>
+    <div class="coin" id="coinMedal" title="${state.lang==="en"?"Defender Medals":"防衛メダル"}"><img class="spr" src="${SPR.icon_defendermedal}" style="width:16px;height:16px">${state.defenderMedals||0}</div>`;
   if(p>lastCoins.p) document.getElementById("coinP").classList.add("bump");
   if(g>lastCoins.g) document.getElementById("coinG").classList.add("bump");
   if(s>lastCoins.s) document.getElementById("coinS").classList.add("bump");
@@ -362,6 +380,10 @@ document.getElementById("skyMoon").onclick=()=>{
   if(state.moonClicks>=10) unlockAch("moonClicker"); else saveState();
 };
 document.getElementById("wanderBunny").onclick=()=>{ unlockAch("bunnyClicker"); };
+document.getElementById("themeMimic").onclick=()=>{ /* already the active theme */ };
+["themeZombie","themeZenith","themeSlime","themeMore"].forEach(id=>{
+  document.getElementById(id).onclick=()=>{ showToast(state.lang==="en"?"Coming soon!":"近日公開!"); };
+});
 document.getElementById("payClose").onclick=()=>{ document.getElementById("payModal").classList.remove("show"); };
 document.getElementById("payModal").onclick=(e)=>{ if(e.target.id==="payModal") e.currentTarget.classList.remove("show"); };
 document.getElementById("digToggle").onclick=()=>{ document.getElementById("digModal").classList.add("show"); renderDig(); };
@@ -670,7 +692,6 @@ function showFloatingPayout(amount){
   document.body.appendChild(el);
   setTimeout(()=>el.remove(), 1450);
 }
-let toastTimer=null;
 function showToast(text){
   toastText.textContent = text;
   toast.classList.add("show");

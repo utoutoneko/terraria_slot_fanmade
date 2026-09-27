@@ -24,6 +24,10 @@ document.getElementById("standSign").src = SPR.deco_sign;
 document.getElementById("wanderBunny").src = SPR.deco_bunny;
 document.getElementById("bottleSlotIcon").src = SPR.deco_bottle;
 document.getElementById("faviconLink").href = SPR.deco_tree;
+document.querySelector("#themeMimic img").src = SPR.mimic_gold;
+document.querySelector("#themeZombie img").src = SPR.icon_theme_zombie;
+document.querySelector("#themeZenith img").src = SPR.icon_theme_zenith;
+document.querySelector("#themeSlime img").src = SPR.icon_theme_slime;
 document.getElementById("autoSpinIcon").src = SPR.deco_stressball;
 document.getElementById("digPickIcon").src = SPR.icon_pickaxe;
 
@@ -89,7 +93,7 @@ function formatCoins(v){
 }
 
 const SAVE_KEY = "mimicslot_terrariajp_save_v3";
-const DEFAULT_STATE = { balance: 10*GOLD, lang:"ja", sound:true, digCooldownUntil:0, ghostCooldownUntil:0, achievements:{}, jackpotPool: 5000, streak:0, bottles:0, totalSpins:0, symbolsWon:{}, starFragments:0, mana:0, totalDigs:0, freeSpinTriggers:0, jackpotWins:0, manaUsed:0, pityCount:0, kakuhenTriggers:0, symbolWinCounts:{}, bottleUsedCount:0, biggestJackpot:0, moonClicks:0, totalGhosts:0 };
+const DEFAULT_STATE = { balance: 10*GOLD, lang:"ja", sound:true, digCooldownUntil:0, ghostCooldownUntil:0, achievements:{}, jackpotPool: 5000, streak:0, bottles:0, totalSpins:0, symbolsWon:{}, starFragments:0, mana:0, totalDigs:0, freeSpinTriggers:0, jackpotWins:0, manaUsed:0, pityCount:0, kakuhenTriggers:0, symbolWinCounts:{}, bottleUsedCount:0, biggestJackpot:0, moonClicks:0, totalGhosts:0, defenderMedals:0 };
 let state = loadState();
 function loadState(){ try{ const raw=localStorage.getItem(SAVE_KEY); if(!raw) return {...DEFAULT_STATE}; return {...DEFAULT_STATE, ...JSON.parse(raw)}; }catch(e){ return {...DEFAULT_STATE}; } }
 function saveState(){ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }
