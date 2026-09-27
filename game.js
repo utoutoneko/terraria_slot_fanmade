@@ -312,6 +312,27 @@ document.getElementById("resetBtn2").onclick=()=>{
 document.getElementById("torchGameBtn").onclick=()=>{
   showToast(state.lang==="en" ? "Ghost Hunt minigame coming soon!" : "幽霊退治ミニゲーム、近日公開!");
 };
+let autoSpinOn = false;
+const autoSpinBtn = document.getElementById("autoSpinBtn");
+function updateAutoSpinUI(){ autoSpinBtn.classList.toggle("autospin-on", autoSpinOn); }
+async function runAutoSpin(){
+  while(autoSpinOn){
+    const bet = freeSpinsRemaining>0 ? lastRealBet : currentBet();
+    if(freeSpinsRemaining<=0 && state.balance<bet){
+      autoSpinOn = false; updateAutoSpinUI();
+      setMsg("自動スピン停止:所持金不足","Auto-spin stopped: not enough coins");
+      break;
+    }
+    await spin();
+    if(!autoSpinOn) break;
+    await new Promise(r=>setTimeout(r,350));
+  }
+}
+autoSpinBtn.onclick=()=>{
+  autoSpinOn = !autoSpinOn;
+  updateAutoSpinUI();
+  if(autoSpinOn) runAutoSpin();
+};
 useBottleBtn.onclick=()=>{
   if(!(state.bottles>0) || bottleBuffRemaining>0) return;
   state.bottles -= 1; bottleBuffRemaining = 5;
