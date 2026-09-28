@@ -78,8 +78,8 @@
       <span class="hidden-en">🎁 FREE SPINS ×<span id="fsMultEn">2</span> — <span id="fsLeftEn">0</span> left</span>
     </div>
     <div class="bottlebuffbadge pixel" id="bottleBuffBadge">
-      <span class="hidden-ja">🧪 ラッキーポーション ×2 残り<span id="bbLeft">0</span>回</span>
-      <span class="hidden-en">🧪 LUCKY POTION ×2 — <span id="bbLeftEn">0</span> left</span>
+      <span class="hidden-ja"><img class="spr bbicon" id="bbIcon" src=""> ラッキーポーション ×<span id="bbMult">2</span> 残り<span id="bbLeft">0</span>回</span>
+      <span class="hidden-en"><img class="spr bbicon" id="bbIconEn" src=""> LUCKY POTION ×<span id="bbMultEn">2</span> — <span id="bbLeftEn">0</span> left</span>
     </div>
 
     <div class="kakubadge pixel" id="kakuBadge">
@@ -168,25 +168,30 @@
     <div class="minigamehub">
       <div class="pixel minigamehub-title"><span class="hidden-ja">ミニゲーム</span><span class="hidden-en">Minigames</span></div>
       <div class="minigamehub-row">
-        <button class="minigame-launch" id="quizLaunchBtn">
+        <button class="minigame-launch locked" id="quizLaunchBtn">
           <img class="spr" id="quizLaunchIcon">
           <span class="pixel"><span class="hidden-ja">テラリアクイズ</span><span class="hidden-en">Terraria Quiz</span></span>
+          <span class="themecost"><span class="tcnum">25</span><img class="spr" src=""></span>
         </button>
-        <button class="minigame-launch" id="fishLaunchBtn">
+        <button class="minigame-launch locked" id="fishLaunchBtn">
           <img class="spr" id="fishLaunchIcon">
           <span class="pixel"><span class="hidden-ja">釣り</span><span class="hidden-en">Fishing</span></span>
+          <span class="themecost"><span class="tcnum">50</span><img class="spr" src=""></span>
         </button>
-        <button class="minigame-launch" id="drawLaunchBtn">
+        <button class="minigame-launch locked" id="drawLaunchBtn">
           <img class="spr" id="drawLaunchIcon">
           <span class="pixel"><span class="hidden-ja">抽選所</span><span class="hidden-en">Lucky Draw</span></span>
+          <span class="themecost"><span class="tcnum">35</span><img class="spr" src=""></span>
         </button>
-        <button class="minigame-launch" id="coinflipLaunchBtn">
+        <button class="minigame-launch locked" id="coinflipLaunchBtn">
           <img class="spr" id="coinflipLaunchIcon">
           <span class="pixel"><span class="hidden-ja">コインフリップ</span><span class="hidden-en">Coin Flip</span></span>
+          <span class="themecost"><span class="tcnum">70</span><img class="spr" src=""></span>
         </button>
-        <button class="minigame-launch" id="rouletteLaunchBtn">
+        <button class="minigame-launch locked" id="rouletteLaunchBtn">
           <img class="spr" id="rouletteLaunchIcon">
           <span class="pixel"><span class="hidden-ja">ルーレット</span><span class="hidden-en">Roulette</span></span>
+          <span class="themecost"><span class="tcnum">100</span><img class="spr" src=""></span>
         </button>
       </div>
     </div>
@@ -220,6 +225,16 @@
       <span class="pixel guidename"><span class="hidden-ja">ルーレット</span><span class="hidden-en">Roulette</span></span>
     </div>
     <div id="rouletteBody"></div>
+  </div>
+</div>
+<div class="modalbackdrop" id="manaModal">
+  <div class="modalbox">
+    <button class="modalclose" id="manaModalClose">✕</button>
+    <div class="guideheader">
+      <img class="spr" id="manaIconBig" style="width:28px;height:28px;">
+      <span class="pixel guidename"><span class="hidden-ja">エーテリアンマナ</span><span class="hidden-en">Etherian Mana</span></span>
+    </div>
+    <div id="manaBody"></div>
   </div>
 </div>
 <div class="modalbackdrop" id="quizModal">

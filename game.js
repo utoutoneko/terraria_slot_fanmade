@@ -118,7 +118,11 @@ function renderBottleUI(){
   useBottleBtn.disabled = !(total>0);
 }
 function updateBottleBuffBadge(){
-  if(bottleBuffRemaining>0){ bottleBuffBadge.classList.add("show"); bbLeft.textContent=bottleBuffRemaining; bbLeftEn.textContent=bottleBuffRemaining; }
+  if(bottleBuffRemaining>0){
+    bottleBuffBadge.classList.add("show"); bbLeft.textContent=bottleBuffRemaining; bbLeftEn.textContent=bottleBuffRemaining;
+    document.getElementById("bbMult").textContent = bottleBuffMult;
+    document.getElementById("bbMultEn").textContent = bottleBuffMult;
+  }
   else { bottleBuffBadge.classList.remove("show"); }
   updateHudStrip();
 }
@@ -179,7 +183,6 @@ function updateHudStrip(){
 let displayedBalance=state.balance;
 let balanceAnimGen=0;
 const MEDAL_RATE = 1000*PLATINUM, PLATINUM_KEEP_ON_CONVERT = 1000*PLATINUM, PLATINUM_AUTOCONVERT_AT = 10000*PLATINUM;
-const MEDAL_CAP = 9999; // Terraria caps most stackable items (Defender Medals included) at 9999 per stack
 function checkPlatinumAutoConvert(){
   // Terraria caps each coin denomination at 9999, so a platinum count can't realistically climb
   // forever. Once balance would hit 10,000 platinum, auto-convert everything above a 1,000
@@ -190,23 +193,44 @@ function checkPlatinumAutoConvert(){
   const convertible = state.balance - PLATINUM_KEEP_ON_CONVERT;
   const wanted = Math.floor(convertible/MEDAL_RATE);
   if(wanted<=0) return;
-  // Defender Medals are a real Terraria item and stack-cap at 9999 like most stackable items;
-  // once full, the excess platinum is simply left unconverted (coins themselves have no such
-  // cap in Terraria, only items do) rather than silently discarded or overflowing the count.
-  const room = MEDAL_CAP - (state.defenderMedals||0);
-  const medals = Math.min(wanted, Math.max(0, room));
-  if(medals<=0){
-    if(!state.medalCapToastShown){
-      state.medalCapToastShown = true; saveState();
-      showToast(state.lang==="en" ? "Defender Medals are stacked to the 9999 cap - spend some to convert more coins!" : "防衛メダルが上限の9999枚に達しています。使ってから変換してください");
-    }
-    return;
-  }
-  state.balance -= medals*MEDAL_RATE;
-  state.defenderMedals = (state.defenderMedals||0)+medals;
-  state.medalCapToastShown = false;
+  state.balance -= wanted*MEDAL_RATE;
+  addDefenderMedals(wanted);
   saveState();
-  showToast(state.lang==="en" ? `Coins capped out - converted to +${medals} Defender Medal${medals>1?"s":""}!` : `所持金が上限に達し、防衛メダル+${medals}枚に変換されました!`);
+  showToast(state.lang==="en" ? `Coins capped out - converted to +${wanted} Defender Medal${wanted>1?"s":""}!` : `所持金が上限に達し、防衛メダル+${wanted}枚に変換されました!`);
+}
+// エーテリアンマナ(2026-09-28追記):ディフェンダーのメダルを単純に9999枚で頭打ちにするのをやめ、
+// 1000枚を残して超過分を自動でマナ1000枚=1ポイントに変換するエンドコンテンツ通貨。メダルの実質的な
+// 上限を撤廃しつつ、メダル自体は常に使い出のある(1000枚前後の)水準に保たれる。マナはいつでも
+// メダルへ手動で変換し直せる(`convertManaToMedals`)。
+const ETHERIAN_MANA_RATE = 1000; // メダル1000枚 = マナ1ポイント
+const MEDAL_RESERVE = 1000; // 自動変換後も必ず手元に残る最低メダル枚数
+function addDefenderMedals(n){
+  if(n<=0) return;
+  state.defenderMedals = (state.defenderMedals||0)+n;
+  if(state.defenderMedals >= MEDAL_RESERVE + ETHERIAN_MANA_RATE){
+    const gained = Math.floor((state.defenderMedals - MEDAL_RESERVE) / ETHERIAN_MANA_RATE);
+    state.defenderMedals -= gained*ETHERIAN_MANA_RATE;
+    state.etherianMana = (state.etherianMana||0) + gained;
+    showToast(state.lang==="en"
+      ? `Defender Medals converted: +${gained} Etherian Mana!`
+      : `ディフェンダーメダルが変換され、エーテリアンマナ+${gained}!`);
+  }
+}
+function convertManaToMedals(amount){
+  const mana = Math.floor(amount);
+  if(mana<=0 || mana>(state.etherianMana||0)) return false;
+  state.etherianMana -= mana;
+  state.defenderMedals = (state.defenderMedals||0) + mana*ETHERIAN_MANA_RATE;
+  saveState(); renderBalance();
+  showToast(state.lang==="en" ? `Converted ${mana} Etherian Mana into ${mana*ETHERIAN_MANA_RATE} Defender Medals!` : `エーテリアンマナ${mana}を防衛メダル${mana*ETHERIAN_MANA_RATE}枚に変換した!`);
+  return true;
+}
+function fmtMana(n){
+  n = n||0;
+  if(n<1000) return String(n);
+  const units = [[1e9,"b"],[1e6,"m"],[1e3,"k"]];
+  for(const [v,suf] of units){ if(n>=v) return (n/v).toFixed(n/v>=100?0:1).replace(/\.0$/,"")+suf; }
+  return String(n);
 }
 function renderBalance(instant){
   checkPlatinumAutoConvert();
@@ -241,7 +265,10 @@ function paintBalance(v){
     <div class="coin" id="coinS"><img class="spr" src="${SPR.coin_silver}" style="width:15px;height:17px">${s}</div>
     <div class="coin" id="coinC"><img class="spr" src="${SPR.coin_copper}" style="width:15px;height:15px">${c}</div>
     <div class="coin" id="coinMedal" title="${state.lang==="en"?"Defender Medals":"防衛メダル"}"><img class="spr" src="${SPR.icon_defendermedal}" style="width:16px;height:16px">${state.defenderMedals||0}</div>
+    ${(state.etherianMana||0)>0 ? `<div class="coin" id="coinMana" title="${state.lang==="en"?"Etherian Mana (click to convert)":"エーテリアンマナ(クリックで変換)"}"><img class="spr" src="${SPR.icon_etherianmana}" style="width:16px;height:16px">${fmtMana(state.etherianMana)}</div>` : ""}
   </div>`;
+  const coinManaEl = document.getElementById("coinMana");
+  if(coinManaEl) coinManaEl.onclick = openManaModal;
   if(p>lastCoins.p) document.getElementById("coinP").classList.add("bump");
   if(g>lastCoins.g) document.getElementById("coinG").classList.add("bump");
   if(s>lastCoins.s) document.getElementById("coinS").classList.add("bump");
@@ -599,7 +626,7 @@ function buyShopItem(key){
   saveState(); renderBalance(); renderShop();
   showToast(state.lang==="en" ? `Purchased ${item.nameEn}!` : `${item.nameJa}を購入した!`);
 }
-document.getElementById("shopToggleBtn").onclick=()=>{ renderShop(); document.getElementById("shopModal").classList.add("show"); };
+document.getElementById("shopToggleBtn").onclick=()=>{ renderShop(); renderMinigameHub(); document.getElementById("shopModal").classList.add("show"); };
 document.getElementById("shopModalClose").onclick=()=>{ document.getElementById("shopModal").classList.remove("show"); };
 document.getElementById("shopModal").onclick=(e)=>{ if(e.target.id==="shopModal") e.currentTarget.classList.remove("show"); };
 
@@ -786,11 +813,10 @@ function finishQuiz(){
   const reward = QUIZ_REWARD_TABLE[correct] || 0;
   state.quizPlayCount = (state.quizPlayCount||0)+1;
   if(correct===total) state.quizPerfectCount = (state.quizPerfectCount||0)+1;
-  if(reward>0){
-    const room = MEDAL_CAP - (state.defenderMedals||0);
-    const given = Math.min(reward, Math.max(0,room));
-    state.defenderMedals = (state.defenderMedals||0)+given;
-    if(given>0){ if(correct===total) sfxJackpot(); else sfxCoin(); }
+  const given = reward;
+  if(given>0){
+    addDefenderMedals(given);
+    if(correct===total) sfxJackpot(); else sfxCoin();
   }
   if(correct===total) unlockAch("quizPerfect");
   if((state.quizPlayCount||0)>=10) unlockAch("quizMaster");
@@ -802,11 +828,6 @@ function finishQuiz(){
   document.getElementById("quizRetryBtn").onclick=()=>renderQuizIntro();
   quizSession = null;
 }
-document.getElementById("quizLaunchBtn").onclick=()=>{
-  document.getElementById("shopModal").classList.remove("show");
-  renderQuizIntro();
-  document.getElementById("quizModal").classList.add("show");
-};
 document.getElementById("quizModalClose").onclick=()=>{ document.getElementById("quizModal").classList.remove("show"); clearInterval(quizTimerId); quizSession=null; };
 document.getElementById("quizModal").onclick=(e)=>{ if(e.target.id==="quizModal"){ e.currentTarget.classList.remove("show"); clearInterval(quizTimerId); quizSession=null; } };
 
@@ -919,9 +940,8 @@ function finishFishCaught(){
   state.fishCaught = (state.fishCaught||0)+1;
   state.fishTierCounts = state.fishTierCounts||{};
   state.fishTierCounts[tier.key] = (state.fishTierCounts[tier.key]||0)+1;
-  const room = MEDAL_CAP - (state.defenderMedals||0);
-  const given = Math.min(reward, Math.max(0,room));
-  state.defenderMedals = (state.defenderMedals||0)+given;
+  const given = reward;
+  addDefenderMedals(given);
   if(given>0){ if(tier.key==="mythic") sfxJackpot(); else sfxCoin(); }
   if((state.fishTierCounts.mythic||0)>=1) unlockAch("fishMythic");
   if((state.fishCaught||0)>=20) unlockAch("fishVeteran");
@@ -947,11 +967,6 @@ function finishFishEscaped(){
   document.getElementById("fishBackBtn").onclick=()=>renderFishIntro();
   fishSession = null;
 }
-document.getElementById("fishLaunchBtn").onclick=()=>{
-  document.getElementById("shopModal").classList.remove("show");
-  renderFishIntro();
-  document.getElementById("fishModal").classList.add("show");
-};
 document.getElementById("fishModalClose").onclick=()=>{ document.getElementById("fishModal").classList.remove("show"); clearInterval(fishTimer); fishSession=null; };
 document.getElementById("fishModal").onclick=(e)=>{ if(e.target.id==="fishModal"){ e.currentTarget.classList.remove("show"); clearInterval(fishTimer); fishSession=null; } };
 
@@ -1007,9 +1022,8 @@ function finishDraw(){
   const tier = pickDrawTier();
   state.drawPlayCount = (state.drawPlayCount||0)+1;
   if(tier.key==="jackpot") state.drawJackpotCount = (state.drawJackpotCount||0)+1;
-  const room = MEDAL_CAP - (state.defenderMedals||0);
-  const given = Math.min(tier.reward, Math.max(0,room));
-  state.defenderMedals = (state.defenderMedals||0)+given;
+  const given = tier.reward;
+  addDefenderMedals(given);
   if(tier.key==="jackpot") sfxJackpot();
   else if(tier.key==="small"||tier.key==="mid") playReal("starPickup",0.55);
   else if(given>0) sfxCoin();
@@ -1023,11 +1037,6 @@ function finishDraw(){
   `;
   document.getElementById("drawBackBtn").onclick=()=>renderDrawIntro();
 }
-document.getElementById("drawLaunchBtn").onclick=()=>{
-  document.getElementById("shopModal").classList.remove("show");
-  renderDrawIntro();
-  document.getElementById("drawModal").classList.add("show");
-};
 document.getElementById("drawModalClose").onclick=()=>{ document.getElementById("drawModal").classList.remove("show"); };
 document.getElementById("drawModal").onclick=(e)=>{ if(e.target.id==="drawModal") e.currentTarget.classList.remove("show"); };
 
@@ -1109,10 +1118,8 @@ function cashOutCoinflip(){
   const en = state.lang==="en";
   const s = coinflipSession;
   if(!s) return;
-  const reward = Math.floor(s.pot);
-  const room = MEDAL_CAP - (state.defenderMedals||0);
-  const given = Math.min(reward, Math.max(0,room));
-  state.defenderMedals = (state.defenderMedals||0)+given;
+  const given = Math.floor(s.pot);
+  addDefenderMedals(given);
   const bigWin = s.streak>=3;
   if(bigWin) sfxJackpot(); else sfxCoin();
   saveState(); renderBalance();
@@ -1123,11 +1130,6 @@ function cashOutCoinflip(){
   document.getElementById("coinflipBackBtn").onclick=()=>renderCoinflipIntro();
   coinflipSession = null;
 }
-document.getElementById("coinflipLaunchBtn").onclick=()=>{
-  document.getElementById("shopModal").classList.remove("show");
-  renderCoinflipIntro();
-  document.getElementById("coinflipModal").classList.add("show");
-};
 document.getElementById("coinflipModalClose").onclick=()=>{ document.getElementById("coinflipModal").classList.remove("show"); coinflipSession=null; };
 document.getElementById("coinflipModal").onclick=(e)=>{ if(e.target.id==="coinflipModal"){ e.currentTarget.classList.remove("show"); coinflipSession=null; } };
 
@@ -1192,10 +1194,8 @@ function finishRoulette(){
   const win = bet.check(n);
   let given = 0, bigWin = false;
   if(win){
-    const totalReturn = rouletteChoice.stake * (1+bet.pays);
-    const room = MEDAL_CAP - (state.defenderMedals||0);
-    given = Math.min(totalReturn, Math.max(0,room));
-    state.defenderMedals = (state.defenderMedals||0)+given;
+    given = rouletteChoice.stake * (1+bet.pays);
+    addDefenderMedals(given);
     bigWin = given>=50;
     if(bigWin) sfxJackpot(); else sfxCoin();
     state.rouletteMaxWin = Math.max(state.rouletteMaxWin||0, given);
@@ -1213,13 +1213,80 @@ function finishRoulette(){
   `;
   document.getElementById("rouletteBackBtn").onclick=()=>renderRouletteIntro();
 }
-document.getElementById("rouletteLaunchBtn").onclick=()=>{
+// ミニゲームの解禁ゲート(2026-09-28追記):5種とも常時プレイ可能だったのを、テーマ解禁と同じ
+// 「メダルで1回だけ解禁」方式に変更。高価にすることでメダルの使い道・エンドコンテンツ感を強化。
+const MINIGAME_DEFS = [
+  { key:"quiz", nameJa:"テラリアクイズ", nameEn:"Terraria Quiz", unlockCost:25, btnId:"quizLaunchBtn", modalId:"quizModal", open:()=>renderQuizIntro() },
+  { key:"draw", nameJa:"抽選所", nameEn:"Lucky Draw", unlockCost:35, btnId:"drawLaunchBtn", modalId:"drawModal", open:()=>renderDrawIntro() },
+  { key:"fishing", nameJa:"釣り", nameEn:"Fishing", unlockCost:50, btnId:"fishLaunchBtn", modalId:"fishModal", open:()=>renderFishIntro() },
+  { key:"coinflip", nameJa:"コインフリップ", nameEn:"Coin Flip", unlockCost:70, btnId:"coinflipLaunchBtn", modalId:"coinflipModal", open:()=>renderCoinflipIntro() },
+  { key:"roulette", nameJa:"ルーレット", nameEn:"Roulette", unlockCost:100, btnId:"rouletteLaunchBtn", modalId:"rouletteModal", open:()=>renderRouletteIntro() },
+];
+function renderMinigameHub(){
+  MINIGAME_DEFS.forEach(def=>{
+    const btn = document.getElementById(def.btnId);
+    const unlocked = !!(state.minigameUnlocked && state.minigameUnlocked[def.key]);
+    btn.classList.toggle("locked", !unlocked);
+    const costEl = btn.querySelector(".tcnum");
+    if(costEl) costEl.textContent = def.unlockCost;
+  });
+}
+function launchMinigame(def){
+  const en = state.lang==="en";
+  const unlocked = !!(state.minigameUnlocked && state.minigameUnlocked[def.key]);
   document.getElementById("shopModal").classList.remove("show");
-  renderRouletteIntro();
-  document.getElementById("rouletteModal").classList.add("show");
-};
+  if(unlocked){
+    def.open();
+    document.getElementById(def.modalId).classList.add("show");
+    return;
+  }
+  const name = en?def.nameEn:def.nameJa;
+  const ok = confirm(en
+    ? `Unlock ${name} for ${def.unlockCost} Defender Medals?`
+    : `${name}をディフェンダーメダル${def.unlockCost}枚で解禁しますか?`);
+  if(!ok) return;
+  if((state.defenderMedals||0) < def.unlockCost){
+    showToast(en?"Not enough Defender Medals":"ディフェンダーのメダルが足りません");
+    return;
+  }
+  state.defenderMedals -= def.unlockCost;
+  state.minigameUnlocked = state.minigameUnlocked||{};
+  state.minigameUnlocked[def.key] = true;
+  saveState(); renderBalance(); renderMinigameHub();
+  showToast(en?`${name} unlocked!`:`${name}を解禁した!`);
+  def.open();
+  document.getElementById(def.modalId).classList.add("show");
+}
+MINIGAME_DEFS.forEach(def=>{ document.getElementById(def.btnId).onclick=()=>launchMinigame(def); });
 document.getElementById("rouletteModalClose").onclick=()=>{ document.getElementById("rouletteModal").classList.remove("show"); };
 document.getElementById("rouletteModal").onclick=(e)=>{ if(e.target.id==="rouletteModal") e.currentTarget.classList.remove("show"); };
+
+function renderManaModal(){
+  const en = state.lang==="en";
+  const mana = state.etherianMana||0;
+  document.getElementById("manaBody").innerHTML = `
+    <p class="quiz-intro-text">${en
+      ? `Defender Medals over ${MEDAL_RESERVE} auto-convert into Etherian Mana at a rate of ${ETHERIAN_MANA_RATE}:1, always leaving ${MEDAL_RESERVE} medals on hand. Convert Mana back into medals anytime you need them.`
+      : `ディフェンダーのメダルは${MEDAL_RESERVE}枚を残して、超過分が${ETHERIAN_MANA_RATE}枚=マナ1として自動変換される。マナはいつでもメダルに戻せる。`}</p>
+    <div class="quiz-progress">${en?"Current Mana":"現在のマナ"}: ${fmtMana(mana)} (${mana.toLocaleString()})</div>
+    <div class="coinflip-stakebtns">
+      ${[1,10,100].filter(n=>n<=mana).map(n=>`<button class="coinflip-optbtn" data-n="${n}">${n} → ${(n*ETHERIAN_MANA_RATE).toLocaleString()}${en?" medals":"枚"}</button>`).join("")}
+      ${mana>0?`<button class="coinflip-optbtn" id="manaConvertAllBtn">${en?"Convert All":"全部変換"}</button>`:""}
+    </div>
+    ${mana<=0?`<div class="quiz-progress">${en?"No Mana yet - it builds up automatically as Defender Medals overflow.":"マナはまだ無い。メダルが1000枚を超えると自動的に貯まっていく。"}</div>`:""}
+  `;
+  document.querySelectorAll("#manaBody .coinflip-stakebtns button[data-n]").forEach(btn=>{
+    btn.onclick=()=>{ convertManaToMedals(+btn.dataset.n); renderManaModal(); renderMinigameHub(); };
+  });
+  const allBtn = document.getElementById("manaConvertAllBtn");
+  if(allBtn) allBtn.onclick=()=>{ convertManaToMedals(state.etherianMana||0); renderManaModal(); renderMinigameHub(); };
+}
+function openManaModal(){
+  renderManaModal();
+  document.getElementById("manaModal").classList.add("show");
+}
+document.getElementById("manaModalClose").onclick=()=>{ document.getElementById("manaModal").classList.remove("show"); };
+document.getElementById("manaModal").onclick=(e)=>{ if(e.target.id==="manaModal") e.currentTarget.classList.remove("show"); };
 
 document.getElementById("payClose").onclick=()=>{ document.getElementById("payModal").classList.remove("show"); };
 document.getElementById("payModal").onclick=(e)=>{ if(e.target.id==="payModal") e.currentTarget.classList.remove("show"); };

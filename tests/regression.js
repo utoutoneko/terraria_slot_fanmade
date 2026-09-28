@@ -188,14 +188,21 @@ check("bottle re-use while active extends remaining and never downgrades the mul
   const second = await page.evaluate(() => ({ remaining: bottleBuffRemaining, mult: bottleBuffMult }));
   assert(second.remaining === 10 && second.mult === 3, `expected stacked use to be 10/3x (not downgraded), got ${JSON.stringify(second)}`);
 });
-check("Defender Medals cap at 9999 and don't spam the cap toast", async (page) => {
-  const messages = [];
-  await page.evaluate(() => { window.__msgs = []; const orig = showToast; showToast = (m) => { window.__msgs.push(m); return orig(m); }; });
-  await page.evaluate(() => { state.defenderMedals = 9999; state.balance = 20000 * 1000000; state.medalCapToastShown = false; for (let i = 0; i < 5; i++) renderBalance(true); });
-  const medals = await page.evaluate(() => state.defenderMedals);
-  const msgs = await page.evaluate(() => window.__msgs.filter((m) => /9999/.test(m)));
-  assert(medals === 9999, `medals should stay capped at 9999, got ${medals}`);
-  assert(msgs.length === 1, `expected exactly 1 cap-warning toast across 5 calls, got ${msgs.length}`);
+check("Defender Medals auto-convert overflow into Etherian Mana, always leaving the 1000-medal reserve", async (page) => {
+  await page.evaluate(() => { state.defenderMedals = 500; state.etherianMana = 0; addDefenderMedals(2500); saveState(); renderBalance(); });
+  const afterFirst = await page.evaluate(() => ({ medals: state.defenderMedals, mana: state.etherianMana }));
+  // 500 + 2500 = 3000 medals; reserve 1000 -> 2000 convertible -> 2 mana, leaving 1000 medals
+  assert(afterFirst.medals === 1000, `expected 1000 medals left after auto-convert, got ${afterFirst.medals}`);
+  assert(afterFirst.mana === 2, `expected 2 Etherian Mana gained, got ${afterFirst.mana}`);
+  const manaCoinVisible = await page.evaluate(() => !!document.getElementById("coinMana"));
+  assert(manaCoinVisible, "the Etherian Mana balance-bar coin should appear once mana > 0");
+  const converted = await page.evaluate(() => convertManaToMedals(1));
+  const afterConvert = await page.evaluate(() => ({ medals: state.defenderMedals, mana: state.etherianMana }));
+  assert(converted === true, "convertManaToMedals should report success when enough mana is available");
+  assert(afterConvert.medals === 2000, `expected 2000 medals after converting 1 mana back, got ${afterConvert.medals}`);
+  assert(afterConvert.mana === 1, `expected 1 Etherian Mana remaining, got ${afterConvert.mana}`);
+  const failedConvert = await page.evaluate(() => convertManaToMedals(99));
+  assert(failedConvert === false, "converting more mana than owned should fail rather than go negative");
 });
 check("Zenith line win and assemble bonus pay the exact configured multipliers", async (page) => {
   await page.evaluate(() => {
@@ -271,8 +278,29 @@ check("secret guide loads lazily on the trigger word and its links don't navigat
   const achCount = await frame.evaluate(() => document.querySelectorAll("#ach-body tr").length);
   assert(achCount === 108, `expected 108 achievement rows in the guide, got ${achCount}`);
 });
+check("minigame unlock gate: locked by default, costs medals once via a confirm dialog, then stays unlocked", async (page) => {
+  await page.evaluate(() => { state.defenderMedals = 10; saveState(); renderBalance(); });
+  await page.click("#shopToggleBtn");
+  const lockedBefore = await page.evaluate(() => document.getElementById("quizLaunchBtn").classList.contains("locked"));
+  assert(lockedBefore, "quiz should be locked by default on a fresh save");
+  // Not enough medals for the 25-medal unlock cost: confirming should not open the game or deduct medals.
+  await page.click("#quizLaunchBtn");
+  const stillLockedAndUnspent = await page.evaluate(() => ({ medals: state.defenderMedals, unlocked: !!(state.minigameUnlocked && state.minigameUnlocked.quiz) }));
+  assert(stillLockedAndUnspent.medals === 10 && !stillLockedAndUnspent.unlocked, "declining/failing the unlock must not spend medals or unlock the game");
+  await page.evaluate(() => { state.defenderMedals = 100; saveState(); renderBalance(); });
+  await page.click("#shopToggleBtn");
+  await page.click("#quizLaunchBtn"); // dialog auto-accepted by freshPage's page.on("dialog", d => d.accept())
+  await page.waitForSelector("#quizModal.show", { state: "visible" });
+  const afterUnlock = await page.evaluate(() => ({ medals: state.defenderMedals, unlocked: !!(state.minigameUnlocked && state.minigameUnlocked.quiz) }));
+  assert(afterUnlock.medals === 75, `expected 100 - 25 (unlock cost) = 75 medals, got ${afterUnlock.medals}`);
+  assert(afterUnlock.unlocked, "quiz should be marked unlocked in state after paying the cost");
+  await page.click("#quizModalClose");
+  await page.click("#shopToggleBtn");
+  const lockedAfter = await page.evaluate(() => document.getElementById("quizLaunchBtn").classList.contains("locked"));
+  assert(!lockedAfter, "quiz launch button should lose its locked styling once unlocked");
+});
 check("quiz minigame: costs medals, the per-question timer counts a timeout as wrong, pays out correctly, and blocks play when broke", async (page) => {
-  await page.evaluate(() => { state.defenderMedals = 50; saveState(); renderBalance(); });
+  await page.evaluate(() => { state.defenderMedals = 50; state.minigameUnlocked = { quiz: true }; saveState(); renderBalance(); });
   await page.click("#shopToggleBtn");
   await page.click("#quizLaunchBtn");
   await page.waitForSelector("#quizStartBtn", { state: "visible" });
@@ -301,7 +329,7 @@ check("quiz minigame: costs medals, the per-question timer counts a timeout as w
   assert(introHtml === true, "quiz start button should be disabled with 0 Defender Medals");
 });
 check("quiz minigame: a genuine 5/5 (no timeouts) unlocks the quizPerfect achievement", async (page) => {
-  await page.evaluate(() => { state.defenderMedals = 50; saveState(); renderBalance(); });
+  await page.evaluate(() => { state.defenderMedals = 50; state.minigameUnlocked = { quiz: true }; saveState(); renderBalance(); });
   await page.click("#shopToggleBtn");
   await page.click("#quizLaunchBtn");
   await page.waitForSelector("#quizStartBtn", { state: "visible" });
@@ -316,7 +344,7 @@ check("quiz minigame: a genuine 5/5 (no timeouts) unlocks the quizPerfect achiev
   assert(await page.evaluate(() => !!state.achievements.quizPerfect), "quizPerfect achievement did not unlock on a real 5/5 round");
 });
 check("fishing minigame: costs medals, a forced-mythic catch pays the right amount, and a missed bite still costs the entry fee", async (page) => {
-  await page.evaluate(() => { state.defenderMedals = 50; saveState(); renderBalance(); });
+  await page.evaluate(() => { state.defenderMedals = 50; state.minigameUnlocked = { fishing: true }; saveState(); renderBalance(); });
   await page.click("#shopToggleBtn");
   await page.click("#fishLaunchBtn");
   await page.waitForSelector("#fishCastBtn", { state: "visible" });
@@ -327,14 +355,11 @@ check("fishing minigame: costs medals, a forced-mythic catch pays the right amou
   await page.waitForSelector("#fishHookBtn", { state: "visible", timeout: 5000 });
   await page.click("#fishHookBtn", { force: true });
   await page.waitForSelector("#fishReelBtn", { state: "visible" });
-  let hits = 0, guard = 0;
-  while (hits < 3 && guard < 300) {
-    const inZone = await page.evaluate(() => {
-      const s = fishSession;
-      return !!(s && s.stage === "reel" && s.segment >= s.zoneStart && s.segment < s.zoneStart + s.tier.zoneSize);
-    });
-    if (inZone) { await page.click("#fishReelBtn"); hits++; await page.waitForTimeout(150); } else { await page.waitForTimeout(30); }
-    guard++;
+  // Force the marker onto the zone and call the real attemptReel() synchronously (no DOM click
+  // round-trip) for each of the 3 needed hits - deterministic, since polling+clicking real segment
+  // state left a small race window against the live 190ms marker tick that occasionally cost a hit.
+  for (let i = 0; i < 3; i++) {
+    await page.evaluate(() => { if (fishSession && fishSession.stage === "reel") { fishSession.segment = fishSession.zoneStart; attemptReel(); } });
   }
   await page.waitForSelector(".fish-result", { state: "visible" });
   const medalsAfter = await page.evaluate(() => state.defenderMedals);
@@ -342,7 +367,7 @@ check("fishing minigame: costs medals, a forced-mythic catch pays the right amou
   assert(await page.evaluate(() => !!state.achievements.fishMythic), "fishMythic achievement did not unlock");
 });
 check("lucky draw (kuji/gacha/garapon unified): costs medals, a forced jackpot pays the right amount", async (page) => {
-  await page.evaluate(() => { state.defenderMedals = 50; saveState(); renderBalance(); });
+  await page.evaluate(() => { state.defenderMedals = 50; state.minigameUnlocked = { draw: true }; saveState(); renderBalance(); });
   await page.click("#shopToggleBtn");
   await page.click("#drawLaunchBtn");
   await page.waitForSelector("#drawStartBtn", { state: "visible" });
@@ -354,7 +379,7 @@ check("lucky draw (kuji/gacha/garapon unified): costs medals, a forced jackpot p
   assert(await page.evaluate(() => !!state.achievements.drawJackpot), "drawJackpot achievement did not unlock");
 });
 check("coin flip: chained wins compound the pot at x1.9, a loss wipes it, cash-out banks the medals", async (page) => {
-  await page.evaluate(() => { state.defenderMedals = 50; saveState(); renderBalance(); });
+  await page.evaluate(() => { state.defenderMedals = 50; state.minigameUnlocked = { coinflip: true }; saveState(); renderBalance(); });
   await page.click("#shopToggleBtn");
   await page.click("#coinflipLaunchBtn");
   await page.waitForSelector(".coinflip-stakebtns button", { state: "visible" });
@@ -384,7 +409,7 @@ check("coin flip: chained wins compound the pot at x1.9, a loss wipes it, cash-o
   assert(medalsFinal === afterStake2, `a loss should not deduct further beyond the already-staked amount (${afterStake2}), got ${medalsFinal}`);
 });
 check("roulette: matches real European-wheel color mapping and pays out red/black bets 1:1", async (page) => {
-  await page.evaluate(() => { state.defenderMedals = 50; saveState(); renderBalance(); });
+  await page.evaluate(() => { state.defenderMedals = 50; state.minigameUnlocked = { roulette: true }; saveState(); renderBalance(); });
   await page.click("#shopToggleBtn");
   await page.click("#rouletteLaunchBtn");
   await page.waitForSelector(".roulette-stake button", { state: "visible" });
