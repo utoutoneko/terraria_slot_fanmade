@@ -165,6 +165,39 @@
     </div>
     <div id="shopItems"></div>
     <div class="themehint pixel"><span class="hidden-ja">ディフェンダーのメダルで購入できます</span><span class="hidden-en">Purchase with Defender Medals</span></div>
+    <div class="minigamehub">
+      <div class="pixel minigamehub-title"><span class="hidden-ja">ミニゲーム</span><span class="hidden-en">Minigames</span></div>
+      <div class="minigamehub-row">
+        <button class="minigame-launch" id="quizLaunchBtn">
+          <img class="spr" id="quizLaunchIcon">
+          <span class="pixel"><span class="hidden-ja">テラリアクイズ</span><span class="hidden-en">Terraria Quiz</span></span>
+        </button>
+        <button class="minigame-launch" id="fishLaunchBtn">
+          <img class="spr" id="fishLaunchIcon">
+          <span class="pixel"><span class="hidden-ja">釣り</span><span class="hidden-en">Fishing</span></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modalbackdrop" id="quizModal">
+  <div class="modalbox">
+    <button class="modalclose" id="quizModalClose">✕</button>
+    <div class="guideheader">
+      <img class="spr" id="quizIconBig" style="width:28px;height:28px;">
+      <span class="pixel guidename"><span class="hidden-ja">テラリアクイズ</span><span class="hidden-en">Terraria Quiz</span></span>
+    </div>
+    <div id="quizBody"></div>
+  </div>
+</div>
+<div class="modalbackdrop" id="fishModal">
+  <div class="modalbox">
+    <button class="modalclose" id="fishModalClose">✕</button>
+    <div class="guideheader">
+      <img class="spr" id="fishIconBig" style="width:28px;height:28px;">
+      <span class="pixel guidename"><span class="hidden-ja">釣り</span><span class="hidden-en">Fishing</span></span>
+    </div>
+    <div id="fishBody"></div>
   </div>
 </div>
 <div class="modalbackdrop" id="infoModal">
@@ -175,8 +208,8 @@
       <span class="pixel guidename"><span class="hidden-ja">ガイド</span><span class="hidden-en">The Guide</span></span>
     </div>
     <div class="howtotext">
-      <p class="hidden-ja">・3×3のリールで、縦3・横3・斜め2の<b>8ライン</b>を毎回まとめて判定します。<br>・同じ絵柄が3つ並ぶと配当獲得。レアな絵柄ほど高配当です(詳細は配当表)。<br>・下部のつるはしアイコンから発掘ミニゲームに挑戦、コインや瓶が手に入ります。<br>・瓶を飲むと5スピンの間、配当が2倍になります。<br>・各テーマのスキャッター絵柄(ミミックならプレゼントミミック)が盤面に3つ以上出現するとフリースピン(掛け金なし)を獲得。<br>・毎スピン、掛け金の一部が「ミステリーポット」に積み立てられ、ごく低確率で全額獲得のチャンスがあります。<br>・連勝するほど配当ボーナスが上乗せされます(画面上部のハートで連勝数がわかります)。<br>・3連勝すると<b>確変</b>に突入(5スピンの間、配当1.5倍+高ランクの絵柄が出やすい)。確変なしで100回転すると天井で確変が確定します(残り回転数は画面に表示)。確変中はスピンボタンが虹のカーソルに変わります。<br>・夜になると流れ星が降ってくることがあります。着地したらクリックで収穫、5個でマナ1個に。マナは画面上部の星で確認でき、クリックで1個消費すると次の1スピンだけ、今遊んでいるテーマの一番低ランクの絵柄(ミミックテーマなら通常ミミック)が出にくくなります。<br>・草の上の看板を押すと実績一覧、机を押すとこれまでのメッセージ履歴、金貨の山を押すと配当表が見られます。<br>・つるはしで発掘、ドアでリセット、松明で幽霊退治ミニゲーム、赤い球で自動スピンのON/OFF(累計100スピンで解禁)、剣でスピンできます。<br>・白金貨を10,000枚貯めると、ガイド横にスロットのテーマ切り替えアイコンが出現します(ミミック→スライム→ゾンビ→ゼニスの順に解禁、後のテーマほど還元率が跳ね上がります)。<br>・白金貨が10,000枚に達すると自動でディフェンダーのメダルに変換されます(1,000枚は手元に残ります)。<br>・地面にいる旅商人から、ディフェンダーのメダルでオートスピン権利証・プレミアムボトル・ターボスピン権利証(購入後はON/OFF切替可)・発掘免許皆伝・相棒のミミック・ラッキーコイン・実績の攻略本(隠し実績の正体が分かる)が購入できます。<br>・草むらのキノコを押すと開発秘話が読めます。<br>・実績は全100種類(隠し実績あり)、達成すると通知されます。</p>
-      <p class="hidden-en">・Every spin checks all <b>8 paylines</b> at once (3 rows + 3 columns + 2 diagonals).<br>・Match 3 of the same symbol on a line to win — rarer symbols pay more (see Paytable).<br>・Tap the pickaxe icon below to try the dig minigame for coins and bottles.<br>・Drinking a bottle doubles your payouts for the next 5 spins.<br>・Landing 3+ the current theme's scatter symbol (Present Mimics on the Mimic theme) anywhere triggers free spins (no bet cost).<br>・A portion of every bet feeds the Mystery Pot — a rare chance awards the whole pool.<br>・Win streaks add a growing payout bonus (see the hearts up top for your current streak).<br>・A 3-win streak triggers <b>Bonus Mode</b> for 5 spins (1.5x payouts and high-tier symbols appear more often). After 100 spins without it, the pity counter guarantees it (remaining spins are shown on screen). The spin button turns into the rainbow cursor while it is active.<br>・At night, falling stars sometimes drop — click a landed one to collect it; 5 collected = 1 Mana. Mana is shown as stars up top; spend 1 to make the lowest-tier symbol of whichever theme you're playing (regular Mimics on the Mimic theme) less likely on your very next spin.<br>・Click the standing sign for achievements, the table for your message history, and the coin pile for the paytable.<br>・The pickaxe digs, the door resets, the torch starts the Ghost Hunt minigame, the red ball toggles auto-spin (unlocks after 100 spins), and the sword spins.<br>・Save up 10,000 Platinum Coins and a theme-switch icon appears next to the guide (Mimic→Slime→Zombie→Zenith, unlocked in that order - later themes pay dramatically more).<br>・Hitting 10,000 Platinum Coins auto-converts the excess into Defender Medals (1,000 Platinum stays in your wallet).<br>・The Traveling Merchant standing on the ground sells an Auto-Spin Pass, Premium Bottles, a Turbo Spin Pass (toggle on/off after buying), an Excavation Permit, a Mimic Companion, a Lucky Coin, and an Achievement Strategy Guide (reveals the hidden achievements) for Defender Medals.<br>・Click the mushroom in the grass to read the dev diary.<br>・100 achievements in total (some hidden) — you'll get a notification when you unlock one.</p>
+      <p class="hidden-ja">・3×3のリールで、縦3・横3・斜め2の<b>8ライン</b>を毎回まとめて判定します。<br>・同じ絵柄が3つ並ぶと配当獲得。レアな絵柄ほど高配当です(詳細は配当表)。<br>・下部のつるはしアイコンから発掘ミニゲームに挑戦、コインや瓶が手に入ります。<br>・瓶を飲むと5スピンの間、配当が2倍になります。<br>・各テーマのスキャッター絵柄(ミミックならプレゼントミミック)が盤面に3つ以上出現するとフリースピン(掛け金なし)を獲得。<br>・毎スピン、掛け金の一部が「ミステリーポット」に積み立てられ、ごく低確率で全額獲得のチャンスがあります。<br>・連勝するほど配当ボーナスが上乗せされます(画面上部のハートで連勝数がわかります)。<br>・3連勝すると<b>確変</b>に突入(5スピンの間、配当1.5倍+高ランクの絵柄が出やすい)。確変なしで100回転すると天井で確変が確定します(残り回転数は画面に表示)。確変中はスピンボタンが虹のカーソルに変わります。<br>・夜になると流れ星が降ってくることがあります。着地したらクリックで収穫、5個でマナ1個に。マナは画面上部の星で確認でき、クリックで1個消費すると次の1スピンだけ、今遊んでいるテーマの一番低ランクの絵柄(ミミックテーマなら通常ミミック)が出にくくなります。<br>・草の上の看板を押すと実績一覧、机を押すとこれまでのメッセージ履歴、金貨の山を押すと配当表が見られます。<br>・つるはしで発掘、ドアでリセット、松明で幽霊退治ミニゲーム、赤い球で自動スピンのON/OFF(累計100スピンで解禁)、剣でスピンできます。<br>・白金貨を10,000枚貯めると、ガイド横にスロットのテーマ切り替えアイコンが出現します(ミミック→スライム→ゾンビ→ゼニスの順に解禁、後のテーマほど還元率が跳ね上がります)。<br>・白金貨が10,000枚に達すると自動でディフェンダーのメダルに変換されます(1,000枚は手元に残ります)。<br>・地面にいる旅商人から、ディフェンダーのメダルでオートスピン権利証・プレミアムボトル・ターボスピン権利証(購入後はON/OFF切替可)・発掘免許皆伝・相棒のミミック・ラッキーコイン・実績の攻略本(隠し実績の正体が分かる)が購入できます。<br>・草むらのキノコを押すと開発秘話が読めます。<br>・実績は全104種類(隠し実績あり)、達成すると通知されます。</p>
+      <p class="hidden-en">・Every spin checks all <b>8 paylines</b> at once (3 rows + 3 columns + 2 diagonals).<br>・Match 3 of the same symbol on a line to win — rarer symbols pay more (see Paytable).<br>・Tap the pickaxe icon below to try the dig minigame for coins and bottles.<br>・Drinking a bottle doubles your payouts for the next 5 spins.<br>・Landing 3+ the current theme's scatter symbol (Present Mimics on the Mimic theme) anywhere triggers free spins (no bet cost).<br>・A portion of every bet feeds the Mystery Pot — a rare chance awards the whole pool.<br>・Win streaks add a growing payout bonus (see the hearts up top for your current streak).<br>・A 3-win streak triggers <b>Bonus Mode</b> for 5 spins (1.5x payouts and high-tier symbols appear more often). After 100 spins without it, the pity counter guarantees it (remaining spins are shown on screen). The spin button turns into the rainbow cursor while it is active.<br>・At night, falling stars sometimes drop — click a landed one to collect it; 5 collected = 1 Mana. Mana is shown as stars up top; spend 1 to make the lowest-tier symbol of whichever theme you're playing (regular Mimics on the Mimic theme) less likely on your very next spin.<br>・Click the standing sign for achievements, the table for your message history, and the coin pile for the paytable.<br>・The pickaxe digs, the door resets, the torch starts the Ghost Hunt minigame, the red ball toggles auto-spin (unlocks after 100 spins), and the sword spins.<br>・Save up 10,000 Platinum Coins and a theme-switch icon appears next to the guide (Mimic→Slime→Zombie→Zenith, unlocked in that order - later themes pay dramatically more).<br>・Hitting 10,000 Platinum Coins auto-converts the excess into Defender Medals (1,000 Platinum stays in your wallet).<br>・The Traveling Merchant standing on the ground sells an Auto-Spin Pass, Premium Bottles, a Turbo Spin Pass (toggle on/off after buying), an Excavation Permit, a Mimic Companion, a Lucky Coin, and an Achievement Strategy Guide (reveals the hidden achievements) for Defender Medals.<br>・Click the mushroom in the grass to read the dev diary.<br>・104 achievements in total (some hidden) — you'll get a notification when you unlock one.</p>
     </div>
     <div class="savebackup">
       <div class="pixel savebackup-title"><span class="hidden-ja">セーブデータのバックアップ</span><span class="hidden-en">Save Backup</span></div>
@@ -224,6 +257,16 @@
     </div>
     <div class="howtotext">
       <div class="clog-ja">
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#16</span>テラリアクイズ・釣りミニゲームを追加、実績を104種に拡張</div><ul>
+          <li>旅商人の店に「ミニゲーム」欄を新設。テラリア雑学の4択クイズ(5問挑戦・メダル参加費・正解数に応じてメダル獲得)を追加</li>
+          <li>釣りミニゲームを追加。キャスト→アタリ→アワセ→リールのタイミング勝負で、レアな魚ほど高難度・高報酬</li>
+          <li>上記2つに関連する実績4種を追加、実績総数は100種→104種に</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#15</span>セーブのバックアップ・初回ガイド導線・シェア可能な実績カードを追加</div><ul>
+          <li>実績・所持金などのセーブデータをJSONファイルとして書き出し/読み込みできるように(端末変更やキャッシュ削除への備え)</li>
+          <li>初めて開いたときだけ自動でガイドが開くように(操作に迷わないための導線)</li>
+          <li>実績一覧の📤ボタンから、実績数・到達テーマ・所持金などをまとめたカード画像を生成してDiscordに貼れるように</li>
+        </ul></div>
         <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#14</span>ゼニス大幅強化、実績を100種に拡張、表示バグ複数修正</div><ul>
           <li>ゼニスの解禁コストを50枚→200枚に、還元率を約1076%→約2000%まで強化(モンテカルロ600万スピンで再較正)</li>
           <li>実績を50種類→100種類に拡張(4テーマそれぞれの絵柄図鑑・レア絵柄・テーマ解禁・上位ランクの実績などを追加)</li>
@@ -292,6 +335,16 @@
         </ul></div>
       </div>
       <div class="clog-en">
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#16</span>Added a Terraria Quiz and Fishing minigame, achievements expanded to 104</div><ul>
+          <li>Added a "Minigames" section to the Traveling Merchant's shop: a Terraria trivia quiz (5 multiple-choice questions per round, medal entry fee, reward scales with correct answers)</li>
+          <li>Added a Fishing minigame: cast, wait for a bite, hook it, then a timing-based reel challenge — rarer fish are harder to land but pay more</li>
+          <li>Added 4 new achievements tied to the two minigames, bringing the total from 100 to 104</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#15</span>Added save backup, first-visit guide, and a shareable achievement card</div><ul>
+          <li>Save data (achievements, balance, etc.) can now be exported to a JSON file and re-imported (in case of a device change or cleared cache)</li>
+          <li>The guide now opens automatically on your very first visit, to help new players get oriented</li>
+          <li>The 📤 button on the achievement list generates a shareable image card (achievement count, furthest theme, balance, etc.) you can post in Discord</li>
+        </ul></div>
         <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#14</span>Big Zenith buff, achievements expanded to 100, several display bugs fixed</div><ul>
           <li>Raised Zenith's unlock cost from 50 to 200 medals and its RTP from ≈1076% to ≈2000% (recalibrated via a 6-million-spin Monte Carlo run)</li>
           <li>Expanded achievements from 50 to 100 (added per-theme symbol compendiums, rare-symbol finds, theme-unlock achievements, and higher-tier versions of existing ones)</li>

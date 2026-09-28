@@ -603,6 +603,345 @@ document.getElementById("shopToggleBtn").onclick=()=>{ renderShop(); document.ge
 document.getElementById("shopModalClose").onclick=()=>{ document.getElementById("shopModal").classList.remove("show"); };
 document.getElementById("shopModal").onclick=(e)=>{ if(e.target.id==="shopModal") e.currentTarget.classList.remove("show"); };
 
+// テラリアクイズ:知識ベースのミニゲーム。ハードコード率の低い長期安定した事実のみを出題し、
+// スロット本体と同じ「運まかせ」の体験にならないよう差別化する。
+const QUIZ_COST = 3;
+const QUIZ_ROUND_SIZE = 5;
+const QUIZ_REWARD_TABLE = [0,1,2,4,7,15]; // index = 5問中の正解数
+const QUIZ_QUESTIONS = [
+  {qJa:"ウォール・オブ・フレッシュと戦う場所は?", qEn:"Where do you fight the Wall of Flesh?", choices:[
+    {ja:"アンダーワールド(地獄)", en:"The Underworld", correct:true},
+    {ja:"地下ジャングル", en:"The Underground Jungle"},
+    {ja:"雪原バイオーム", en:"The Snow Biome"},
+    {ja:"海", en:"The Ocean"}]},
+  {qJa:"ハードモードが始まるきっかけは?", qEn:"What triggers Hardmode?", choices:[
+    {ja:"ウォール・オブ・フレッシュを倒す", en:"Defeating the Wall of Flesh", correct:true},
+    {ja:"ムーンロードを倒す", en:"Defeating the Moon Lord"},
+    {ja:"スケルトロンを倒す", en:"Defeating Skeletron"},
+    {ja:"キングスライムを倒す", en:"Defeating King Slime"}]},
+  {qJa:"ディフェンダーのメダルが手に入るイベントは?", qEn:"Which event awards Defender Medals?", choices:[
+    {ja:"オールドワンズアーミー", en:"The Old One's Army", correct:true},
+    {ja:"フロストムーン", en:"The Frost Moon"},
+    {ja:"パンプキンムーン", en:"The Pumpkin Moon"},
+    {ja:"ブラッドムーン", en:"A Blood Moon"}]},
+  {qJa:"ディフェンダーのメダルで買い物ができるNPCは?", qEn:"Which NPC sells items for Defender Medals?", choices:[
+    {ja:"酒場の主人(タバーンキープ)", en:"The Tavernkeep", correct:true},
+    {ja:"商人", en:"The Merchant"},
+    {ja:"ガイド", en:"The Guide"},
+    {ja:"魔法使い", en:"The Wizard"}]},
+  {qJa:"クイーンビーを召喚できる場所は?", qEn:"Where do you summon Queen Bee?", choices:[
+    {ja:"地下ジャングルの蜂の巣(幼虫)", en:"The Underground Jungle (Bee Larva)", correct:true},
+    {ja:"コラプション", en:"The Corruption"},
+    {ja:"雪原", en:"The Snow biome"},
+    {ja:"普通の洞窟", en:"An ordinary cavern"}]},
+  {qJa:"ゼニス(Zenith)の合成に使わない剣は?", qEn:"Which sword is NOT used to craft the Zenith?", choices:[
+    {ja:"銅の剣(コッパーブロードソード)", en:"The Copper Broadsword", correct:true},
+    {ja:"ナイツエッジ系の剣", en:"A Night's Edge-line sword"},
+    {ja:"スターラース", en:"The Star Wrath"},
+    {ja:"ミャウメア", en:"The Meowmere"}]},
+  {qJa:"ディフェンダーのメダルの1スタック上限は?", qEn:"What is the stack cap for Defender Medals?", choices:[
+    {ja:"9999枚", en:"9999", correct:true},
+    {ja:"999枚", en:"999"},
+    {ja:"99枚", en:"99"},
+    {ja:"上限なし", en:"Unlimited"}]},
+  {qJa:"コラプションとクリムゾンは同じワールドに両方生成される?", qEn:"Do the Corruption and Crimson both generate in the same world?", choices:[
+    {ja:"されない(片方だけ)", en:"No — a world gets only one", correct:true},
+    {ja:"される(必ず両方)", en:"Yes, always both"},
+    {ja:"ハードモードで両方増える", en:"Both expand in Hardmode"},
+    {ja:"プレイヤーが選んで両方置ける", en:"The player can place both freely"}]},
+  {qJa:"ガイドNPCの主な役割は?", qEn:"What is the Guide NPC mainly used for?", choices:[
+    {ja:"見せたアイテムのクラフトレシピを教える", en:"Telling you the crafting recipe for an item you show him", correct:true},
+    {ja:"装備を強化する", en:"Enchanting your equipment"},
+    {ja:"天気を予報する", en:"Forecasting the weather"},
+    {ja:"ペットを配布する", en:"Handing out pets"}]},
+  {qJa:"旅商人(Traveling Merchant)の出現の仕方は?", qEn:"How does the Traveling Merchant NPC appear?", choices:[
+    {ja:"空き家があればランダムな日に一時的に訪れる", en:"Randomly visits for a day if you have a vacant house", correct:true},
+    {ja:"特定のボスを倒すと出現する", en:"Only appears after defeating a specific boss"},
+    {ja:"夜にしか出ない", en:"Only appears at night"},
+    {ja:"一度来たらずっと定住する", en:"Permanently settles once it arrives"}]},
+  {qJa:"プランテラと戦う前、その姿はどこにある?", qEn:"Where is Plantera before you fight her?", choices:[
+    {ja:"地下ジャングルの巨大な蕾(バルブ)の中で眠っている", en:"Asleep inside a giant bulb in the Underground Jungle", correct:true},
+    {ja:"アンダーワールドを徘徊している", en:"Wandering the Underworld"},
+    {ja:"ダンジョンの最深部にいる", en:"At the bottom of the Dungeon"},
+    {ja:"空に浮かんでいる", en:"Floating in the sky"}]},
+  {qJa:"ムーンロードを召喚するのに必要なアイテムは?", qEn:"What item is needed to summon the Moon Lord?", choices:[
+    {ja:"セレスティアルサイジル(天体の印章)", en:"The Celestial Sigil", correct:true},
+    {ja:"何もせず自動で出現する", en:"Nothing — it spawns automatically"},
+    {ja:"満月の夜に自然発生する", en:"It spawns naturally on a full moon"},
+    {ja:"ダンジョンのNPCに話しかける", en:"Talking to an NPC in the Dungeon"}]},
+  {qJa:"トリュフ(Truffle)NPCが引っ越してくる条件は?", qEn:"What lets the Truffle NPC move in?", choices:[
+    {ja:"地上にキノコバイオームを作る", en:"Building a surface Glowing Mushroom biome", correct:true},
+    {ja:"地下に行く", en:"Going underground"},
+    {ja:"ジャングルを解禁する", en:"Unlocking the Jungle"},
+    {ja:"ボスを1体倒す", en:"Defeating any one boss"}]},
+  {qJa:"ブラッドムーンが起きると空はどんな色になる?", qEn:"What color does the sky turn during a Blood Moon?", choices:[
+    {ja:"赤", en:"Red", correct:true},
+    {ja:"緑", en:"Green"},
+    {ja:"紫", en:"Purple"},
+    {ja:"変わらない", en:"It doesn't change"}]},
+  {qJa:"スケルトロンを倒すと何が変わる?", qEn:"What changes after defeating Skeletron?", choices:[
+    {ja:"ダンジョンに昼間でも安全に入れる", en:"The Dungeon becomes safe to enter during the day", correct:true},
+    {ja:"ハードモードになる", en:"Hardmode begins"},
+    {ja:"旅商人が定住する", en:"The Traveling Merchant settles permanently"},
+    {ja:"全ボスが弱体化する", en:"All bosses become weaker"}]},
+  {qJa:"キングスライムを召喚するアイテムは?", qEn:"What item summons King Slime?", choices:[
+    {ja:"スライムクラウン", en:"The Slime Crown", correct:true},
+    {ja:"スライムの心臓", en:"A Slime Heart"},
+    {ja:"ゼリーの結晶", en:"A Gel Crystal"},
+    {ja:"何もいらず自然発生のみ", en:"Nothing — it's wild-spawn only"}]},
+  {qJa:"人狼(ワーウルフ)が特に出現しやすい夜は?", qEn:"Werewolves are especially likely to spawn during:", choices:[
+    {ja:"満月の夜", en:"A full moon", correct:true},
+    {ja:"新月の夜", en:"A new moon"},
+    {ja:"ブラッドムーン限定", en:"Blood Moons only"},
+    {ja:"雨の夜限定", en:"Rainy nights only"}]},
+  {qJa:"染料(ダイ)をクラフトするのに必要な施設は?", qEn:"What's needed to craft Dyes?", choices:[
+    {ja:"ダイバット", en:"A Dye Vat", correct:true},
+    {ja:"かまど", en:"A Furnace"},
+    {ja:"アンビル", en:"An Anvil"},
+    {ja:"作業台", en:"A Work Bench"}]},
+  {qJa:"次のうち、ハードモードで新しく手に入る鉱石でないものは?", qEn:"Which of these is NOT a new Hardmode ore?", choices:[
+    {ja:"鉄", en:"Iron", correct:true},
+    {ja:"コバルト/パラジウム", en:"Cobalt/Palladium"},
+    {ja:"ミスリル/オリハルコン", en:"Mythril/Orichalcum"},
+    {ja:"アダマンタイト/チタニウム", en:"Adamantite/Titanium"}]},
+  {qJa:"ジャングルの寺院に入るための鍵は?", qEn:"What key is needed to enter the Lihzahrd Temple?", choices:[
+    {ja:"テンプルキー(プランテラのドロップ)", en:"The Temple Key, dropped by Plantera", correct:true},
+    {ja:"ダンジョンの鍵", en:"A Dungeon key"},
+    {ja:"金の鍵", en:"A Golden Key"},
+    {ja:"鍵は不要", en:"No key is needed"}]},
+  {qJa:"ハロウ(The Hallow)が出現するタイミングは?", qEn:"When does the Hallow first appear?", choices:[
+    {ja:"ハードモード開始と同時にワールドに新生成される", en:"It's newly generated across the world when Hardmode begins", correct:true},
+    {ja:"最初からワールドに存在する", en:"It exists from world creation"},
+    {ja:"ムーンロードを倒すと出現する", en:"It appears after defeating the Moon Lord"},
+    {ja:"プレイヤーが種で植える", en:"The player plants it from a seed"}]},
+];
+let quizSession = null;
+function shuffleArr(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function renderQuizIntro(){
+  const en = state.lang==="en";
+  const canAfford = (state.defenderMedals||0) >= QUIZ_COST;
+  document.getElementById("quizBody").innerHTML = `
+    <p class="quiz-intro-text">${en
+      ? `Answer ${QUIZ_ROUND_SIZE} Terraria trivia questions (4 choices each). Entry costs ${QUIZ_COST} Defender Medals — the more you get right, the more medals you win back.`
+      : `テラリアの4択クイズに${QUIZ_ROUND_SIZE}問挑戦。参加費はディフェンダーのメダル${QUIZ_COST}枚、正解数が多いほどメダルがもらえる。`}</p>
+    <button class="quiz-startbtn" id="quizStartBtn" ${canAfford?"":"disabled"}>${en?`Start (${QUIZ_COST} medals)`:`挑戦する(${QUIZ_COST}枚)`}</button>
+    ${canAfford?"":`<div class="quiz-progress">${en?"Not enough Defender Medals":"ディフェンダーのメダルが足りません"}</div>`}
+  `;
+  const btn = document.getElementById("quizStartBtn");
+  if(btn && !btn.disabled) btn.onclick=()=>startQuiz();
+}
+function startQuiz(){
+  if((state.defenderMedals||0) < QUIZ_COST){ showToast(state.lang==="en"?"Not enough Defender Medals":"ディフェンダーのメダルが足りません"); renderQuizIntro(); return; }
+  state.defenderMedals -= QUIZ_COST;
+  saveState(); renderBalance();
+  const picked = shuffleArr(QUIZ_QUESTIONS).slice(0,QUIZ_ROUND_SIZE).map(q=>({ qJa:q.qJa, qEn:q.qEn, choices:shuffleArr(q.choices) }));
+  quizSession = { questions:picked, idx:0, correct:0 };
+  renderQuizQuestion();
+}
+function renderQuizQuestion(){
+  const en = state.lang==="en";
+  const q = quizSession.questions[quizSession.idx];
+  const body = document.getElementById("quizBody");
+  body.innerHTML = `
+    <div class="quiz-progress">${en?"Question":"問題"} ${quizSession.idx+1} / ${quizSession.questions.length}</div>
+    <div class="quiz-q">${en?q.qEn:q.qJa}</div>
+    <div class="quiz-choices">${q.choices.map((c,i)=>`<button class="quiz-choice" data-i="${i}">${en?c.en:c.ja}</button>`).join("")}</div>
+  `;
+  body.querySelectorAll(".quiz-choice").forEach(btn=>{
+    btn.onclick=()=>{
+      const idx = +btn.dataset.i;
+      const picked = q.choices[idx];
+      body.querySelectorAll(".quiz-choice").forEach(b=>b.disabled=true);
+      const buttons = [...body.querySelectorAll(".quiz-choice")];
+      if(picked.correct){ btn.classList.add("quiz-correct"); quizSession.correct++; playReal("unlock",0.5); }
+      else {
+        btn.classList.add("quiz-wrong"); playReal("hit",0.4);
+        const correctIdx = q.choices.findIndex(c=>c.correct);
+        if(correctIdx>=0) buttons[correctIdx].classList.add("quiz-correct");
+      }
+      setTimeout(()=>{
+        quizSession.idx++;
+        if(quizSession.idx < quizSession.questions.length) renderQuizQuestion();
+        else finishQuiz();
+      }, 900);
+    };
+  });
+}
+function finishQuiz(){
+  const en = state.lang==="en";
+  const correct = quizSession.correct;
+  const total = quizSession.questions.length;
+  const reward = QUIZ_REWARD_TABLE[correct] || 0;
+  state.quizPlayCount = (state.quizPlayCount||0)+1;
+  if(correct===total) state.quizPerfectCount = (state.quizPerfectCount||0)+1;
+  if(reward>0){
+    const room = MEDAL_CAP - (state.defenderMedals||0);
+    const given = Math.min(reward, Math.max(0,room));
+    state.defenderMedals = (state.defenderMedals||0)+given;
+    if(given>0) sfxCoin();
+  }
+  if(correct===total) unlockAch("quizPerfect");
+  if((state.quizPlayCount||0)>=10) unlockAch("quizMaster");
+  saveState(); renderBalance();
+  document.getElementById("quizBody").innerHTML = `
+    <div class="quiz-result">${en?`You got ${correct}/${total} correct!<br>+${reward} Defender Medals`:`${total}問中${correct}問正解!<br>ディフェンダーメダル +${reward}枚`}</div>
+    <button class="quiz-retrybtn" id="quizRetryBtn">${en?"Back":"戻る"}</button>
+  `;
+  document.getElementById("quizRetryBtn").onclick=()=>renderQuizIntro();
+  quizSession = null;
+}
+document.getElementById("quizLaunchBtn").onclick=()=>{
+  document.getElementById("shopModal").classList.remove("show");
+  renderQuizIntro();
+  document.getElementById("quizModal").classList.add("show");
+};
+document.getElementById("quizModalClose").onclick=()=>{ document.getElementById("quizModal").classList.remove("show"); quizSession=null; };
+document.getElementById("quizModal").onclick=(e)=>{ if(e.target.id==="quizModal"){ e.currentTarget.classList.remove("show"); quizSession=null; } };
+
+// 釣りミニゲーム:キャスト→アタリ待ち→アワセ→リールQTEの4段階。実在するテラリアの魚種名を採用しているが、
+// terraria.wiki.gg本体がこのセッションのネットワーク環境からCloudflareのbot対策で到達不能だったため、
+// スプライトは同じ雰囲気に寄せた自作のドット絵アイコン(sprites_data.jsのfish_*/deco_bobber/icon_fishingrod)を使用。
+const FISH_COST = 8;
+const FISH_SEGMENTS = 8;
+const FISH_TICK_MS = 260;
+const FISH_ATTEMPTS = 5;
+const FISH_NEED_HITS = 2;
+const FISH_TIERS = [
+  { key:"common", nameJa:"トラウト", nameEn:"Trout", weight:55, reward:[1,2], zoneSize:4, iconKey:"fish_common" },
+  { key:"rare", nameJa:"クリムゾンタイガーフィッシュ", nameEn:"Crimson Tigerfish", weight:28, reward:[4,4], zoneSize:3, iconKey:"fish_rare" },
+  { key:"legendary", nameJa:"リーバーシャーク", nameEn:"Reaver Shark", weight:12, reward:[9,9], zoneSize:2, iconKey:"fish_legendary" },
+  { key:"mythic", nameJa:"クリスタルサーペント", nameEn:"Crystal Serpent", weight:5, reward:[20,20], zoneSize:1, iconKey:"fish_mythic" },
+];
+function pickFishTier(){
+  const total = FISH_TIERS.reduce((s,t)=>s+t.weight,0);
+  let r = Math.random()*total;
+  for(const t of FISH_TIERS){ if(r<t.weight) return t; r-=t.weight; }
+  return FISH_TIERS[0];
+}
+let fishSession = null;
+let fishTimer = null;
+function renderFishIntro(){
+  const en = state.lang==="en";
+  const canAfford = (state.defenderMedals||0) >= FISH_COST;
+  document.getElementById("fishBody").innerHTML = `
+    <p class="quiz-intro-text">${en
+      ? `Cast a line for ${FISH_COST} Defender Medals. Hook the bite in time, then click Reel when the marker lands in the lit-up zone (need ${FISH_NEED_HITS} of ${FISH_ATTEMPTS} tries). Rarer fish pay more but are harder to land.`
+      : `ディフェンダーのメダル${FISH_COST}枚でキャスト。アタリが来たらすぐアワセて、リールは光っている範囲にマーカーが来た瞬間にクリック(${FISH_ATTEMPTS}回中${FISH_NEED_HITS}回成功で釣り上げ)。レアな魚ほど報酬は高いが難しい。`}</p>
+    <button class="quiz-startbtn" id="fishCastBtn" ${canAfford?"":"disabled"}>${en?`Cast (${FISH_COST} medals)`:`キャストする(${FISH_COST}枚)`}</button>
+    ${canAfford?"":`<div class="quiz-progress">${en?"Not enough Defender Medals":"ディフェンダーのメダルが足りません"}</div>`}
+  `;
+  const btn = document.getElementById("fishCastBtn");
+  if(btn && !btn.disabled) btn.onclick=()=>startFishCast();
+}
+function startFishCast(){
+  if((state.defenderMedals||0) < FISH_COST){ showToast(state.lang==="en"?"Not enough Defender Medals":"ディフェンダーのメダルが足りません"); renderFishIntro(); return; }
+  state.defenderMedals -= FISH_COST;
+  saveState(); renderBalance();
+  const en = state.lang==="en";
+  document.getElementById("fishBody").innerHTML = `
+    <div class="fish-wait pixel">${en?"Waiting for a bite...":"アタリを待っています…"}</div>
+    <div class="fish-bobber-area"><img class="spr fish-bobber-img" id="fishBobberImg"></div>`;
+  document.getElementById("fishBobberImg").src = SPR.deco_bobber;
+  fishSession = { stage:"waiting" };
+  const waitMs = 1500 + Math.random()*2000;
+  setTimeout(()=>{ if(fishSession && fishSession.stage==="waiting") startBiteWindow(); }, waitMs);
+}
+function startBiteWindow(){
+  fishSession.stage = "bite";
+  const en = state.lang==="en";
+  document.getElementById("fishBody").innerHTML = `
+    <div class="fish-bite pixel">${en?"A bite!! Hook it now!":"アタリだ!!今アワセろ!"}</div>
+    <button class="quiz-startbtn fish-hook-btn" id="fishHookBtn">${en?"Hook!":"アワセる!"}</button>`;
+  playReal("hit",0.5);
+  const biteTimeout = setTimeout(()=>{ if(fishSession && fishSession.stage==="bite") finishFishEscaped(); }, 1500);
+  document.getElementById("fishHookBtn").onclick=()=>{
+    clearTimeout(biteTimeout);
+    if(!fishSession || fishSession.stage!=="bite") return;
+    startReelQte();
+  };
+}
+function startReelQte(){
+  const tier = pickFishTier();
+  fishSession = { stage:"reel", tier, hits:0, misses:0, segment:0,
+    zoneStart: Math.floor(Math.random()*(FISH_SEGMENTS-tier.zoneSize+1)), startTime: Date.now() };
+  renderReelQte();
+  clearInterval(fishTimer);
+  fishTimer = setInterval(()=>{
+    if(!fishSession || fishSession.stage!=="reel") return;
+    fishSession.segment = Math.floor((Date.now()-fishSession.startTime)/FISH_TICK_MS) % FISH_SEGMENTS;
+    renderReelQte();
+  }, 60);
+}
+function renderReelQte(){
+  const en = state.lang==="en";
+  const s = fishSession;
+  const bar = Array.from({length:FISH_SEGMENTS},(_,i)=>{
+    const inZone = i>=s.zoneStart && i<s.zoneStart+s.tier.zoneSize;
+    const isMarker = i===s.segment;
+    return `<span class="fish-seg ${inZone?"fish-seg-zone":""} ${isMarker?"fish-seg-marker":""}"></span>`;
+  }).join("");
+  document.getElementById("fishBody").innerHTML = `
+    <div class="fish-reel-title pixel">${en?`Reeling in a ${s.tier.nameEn}...`:`${s.tier.nameJa}を釣り上げ中…`}</div>
+    <div class="fish-reel-bar">${bar}</div>
+    <div class="fish-reel-status pixel">${en?`Hits: ${s.hits}/${FISH_NEED_HITS} — Tries left: ${FISH_ATTEMPTS-s.hits-s.misses}`:`成功:${s.hits}/${FISH_NEED_HITS} 残り回数:${FISH_ATTEMPTS-s.hits-s.misses}`}</div>
+    <button class="quiz-startbtn" id="fishReelBtn">${en?"Reel!":"巻く!"}</button>
+  `;
+  document.getElementById("fishReelBtn").onclick=()=>attemptReel();
+}
+function attemptReel(){
+  const s = fishSession;
+  if(!s || s.stage!=="reel") return;
+  const inZone = s.segment>=s.zoneStart && s.segment<s.zoneStart+s.tier.zoneSize;
+  if(inZone){ s.hits++; playReal("unlock",0.4); } else { s.misses++; playReal("hit",0.35); }
+  if(s.hits>=FISH_NEED_HITS){ finishFishCaught(); return; }
+  if(s.hits+s.misses>=FISH_ATTEMPTS){ finishFishEscaped(); return; }
+  s.zoneStart = Math.floor(Math.random()*(FISH_SEGMENTS-s.tier.zoneSize+1));
+  renderReelQte();
+}
+function finishFishCaught(){
+  clearInterval(fishTimer);
+  const en = state.lang==="en";
+  const tier = fishSession.tier;
+  const reward = tier.reward[0] + Math.floor(Math.random()*(tier.reward[1]-tier.reward[0]+1));
+  state.fishCaught = (state.fishCaught||0)+1;
+  state.fishTierCounts = state.fishTierCounts||{};
+  state.fishTierCounts[tier.key] = (state.fishTierCounts[tier.key]||0)+1;
+  const room = MEDAL_CAP - (state.defenderMedals||0);
+  const given = Math.min(reward, Math.max(0,room));
+  state.defenderMedals = (state.defenderMedals||0)+given;
+  if(given>0) sfxCoin();
+  if((state.fishTierCounts.mythic||0)>=1) unlockAch("fishMythic");
+  if((state.fishCaught||0)>=20) unlockAch("fishVeteran");
+  saveState(); renderBalance();
+  document.getElementById("fishBody").innerHTML = `
+    <div class="fish-result">
+      <img class="spr fish-result-img" src="${SPR[tier.iconKey]}">
+      <div class="pixel">${en?`Caught a ${tier.nameEn}!`:`${tier.nameJa}を釣り上げた!`}</div>
+      <div class="pixel">+${given} ${en?"Defender Medals":"ディフェンダーメダル"}</div>
+    </div>
+    <button class="quiz-retrybtn" id="fishBackBtn">${en?"Back":"戻る"}</button>
+  `;
+  document.getElementById("fishBackBtn").onclick=()=>renderFishIntro();
+  fishSession = null;
+}
+function finishFishEscaped(){
+  clearInterval(fishTimer);
+  const en = state.lang==="en";
+  document.getElementById("fishBody").innerHTML = `
+    <div class="fish-result pixel">${en?"The fish got away...":"残念、逃げられた…"}</div>
+    <button class="quiz-retrybtn" id="fishBackBtn">${en?"Back":"戻る"}</button>
+  `;
+  document.getElementById("fishBackBtn").onclick=()=>renderFishIntro();
+  fishSession = null;
+}
+document.getElementById("fishLaunchBtn").onclick=()=>{
+  document.getElementById("shopModal").classList.remove("show");
+  renderFishIntro();
+  document.getElementById("fishModal").classList.add("show");
+};
+document.getElementById("fishModalClose").onclick=()=>{ document.getElementById("fishModal").classList.remove("show"); clearInterval(fishTimer); fishSession=null; };
+document.getElementById("fishModal").onclick=(e)=>{ if(e.target.id==="fishModal"){ e.currentTarget.classList.remove("show"); clearInterval(fishTimer); fishSession=null; } };
+
 document.getElementById("payClose").onclick=()=>{ document.getElementById("payModal").classList.remove("show"); };
 document.getElementById("payModal").onclick=(e)=>{ if(e.target.id==="payModal") e.currentTarget.classList.remove("show"); };
 document.getElementById("digToggle").onclick=()=>{ document.getElementById("digModal").classList.add("show"); renderDig(); };
@@ -709,6 +1048,10 @@ const ACHIEVEMENT_DEFS = [
   {key:"ghostHunter100", ja:"幽霊退治マスター", en:"Ghost Hunt Master", condJa:"幽霊退治で通算100体退治する"},
   {key:"ghostHunter250", ja:"幽霊祓いの賢者", en:"Ghost Hunt Sage", condJa:"幽霊退治で通算250体退治する"},
   {key:"mysteryPotMax", ja:"大当たりの神", en:"Jackpot Deity", condJa:"ミステリーポットで白金貨10枚以上を獲得する"},
+  {key:"quizPerfect", ja:"テラリア博士", en:"Terraria Scholar", condJa:"テラリアクイズで5問全問正解する"},
+  {key:"quizMaster", ja:"クイズマイスター", en:"Quiz Master", condJa:"テラリアクイズに通算10回挑戦する"},
+  {key:"fishMythic", ja:"クリスタルの釣り人", en:"Crystal Angler", condJa:"釣りでクリスタルサーペントを釣り上げる"},
+  {key:"fishVeteran", ja:"釣り名人", en:"Master Angler", condJa:"釣りで通算20匹釣り上げる"},
 ];
 const ACH_PAGE_SIZE = 10;
 let achPage = 0;

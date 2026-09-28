@@ -112,12 +112,12 @@ check("coin pile opens paytable", async (page) => {
   assert(await page.evaluate(() => document.getElementById("payModal").classList.contains("show")), "paytable did not open");
   await page.click("#payClose");
 });
-check("sign opens achievement list (100 entries, 10 pages)", async (page) => {
+check("sign opens achievement list (104 entries, 11 pages)", async (page) => {
   await page.click("#standSign"); await page.waitForTimeout(100);
   assert(await page.evaluate(() => document.getElementById("achBubble").classList.contains("show")), "achievement bubble did not open");
-  assert((await page.evaluate(() => ACHIEVEMENT_DEFS.length)) === 100, "expected exactly 100 achievements");
+  assert((await page.evaluate(() => ACHIEVEMENT_DEFS.length)) === 104, "expected exactly 104 achievements");
   const pageLabel = await page.evaluate(() => document.querySelector(".ach-pagenum").textContent.trim());
-  assert(pageLabel === "1 / 10", `expected page "1 / 10", got "${pageLabel}"`);
+  assert(pageLabel === "1 / 11", `expected page "1 / 11", got "${pageLabel}"`);
 });
 check("table opens chat log", async (page) => {
   await page.click("#grassTable"); await page.waitForTimeout(100);
@@ -269,7 +269,55 @@ check("secret guide loads lazily on the trigger word and its links don't navigat
   await page.waitForTimeout(300);
   assert(page.url() === urlBefore, "clicking a guide link navigated the page (regression: srcdoc base-URL bug)");
   const achCount = await frame.evaluate(() => document.querySelectorAll("#ach-body tr").length);
-  assert(achCount === 100, `expected 100 achievement rows in the guide, got ${achCount}`);
+  assert(achCount === 104, `expected 104 achievement rows in the guide, got ${achCount}`);
+});
+check("quiz minigame: costs medals, pays out on a perfect round, and blocks play when broke", async (page) => {
+  await page.evaluate(() => { state.defenderMedals = 50; saveState(); renderBalance(); });
+  await page.click("#shopToggleBtn");
+  await page.click("#quizLaunchBtn");
+  await page.waitForSelector("#quizStartBtn", { state: "visible" });
+  await page.click("#quizStartBtn");
+  for (let i = 0; i < 5; i++) {
+    await page.waitForSelector(".quiz-choice", { state: "visible" });
+    const correctIdx = await page.evaluate(() => quizSession.questions[quizSession.idx].choices.findIndex((c) => c.correct));
+    (await page.$$(".quiz-choice"))[correctIdx].click();
+    await page.waitForTimeout(950);
+  }
+  await page.waitForSelector(".quiz-result", { state: "visible" });
+  const medalsAfter = await page.evaluate(() => state.defenderMedals);
+  assert(medalsAfter === 62, `expected 50 - 3 (entry) + 15 (perfect reward) = 62 medals, got ${medalsAfter}`);
+  assert(await page.evaluate(() => !!state.achievements.quizPerfect), "quizPerfect achievement did not unlock on a 5/5 round");
+  assert(!(await page.evaluate(() => !!state.achievements.firstWin)), "regression: playing the quiz alone must not unlock the spin-based firstWin achievement");
+  await page.click("#quizRetryBtn");
+  await page.evaluate(() => { state.defenderMedals = 0; saveState(); renderBalance(); });
+  const introHtml = await page.evaluate(() => { renderQuizIntro(); return document.getElementById("quizStartBtn").disabled; });
+  assert(introHtml === true, "quiz start button should be disabled with 0 Defender Medals");
+});
+check("fishing minigame: costs medals, a forced-mythic catch pays the right amount, and a missed bite still costs the entry fee", async (page) => {
+  await page.evaluate(() => { state.defenderMedals = 50; saveState(); renderBalance(); });
+  await page.click("#shopToggleBtn");
+  await page.click("#fishLaunchBtn");
+  await page.waitForSelector("#fishCastBtn", { state: "visible" });
+  await page.evaluate(() => { pickFishTier = () => FISH_TIERS.find((t) => t.key === "mythic"); });
+  await page.click("#fishCastBtn");
+  const afterCast = await page.evaluate(() => state.defenderMedals);
+  assert(afterCast === 42, `expected 50 - 8 (entry fee) = 42 medals right after casting, got ${afterCast}`);
+  await page.waitForSelector("#fishHookBtn", { state: "visible", timeout: 5000 });
+  await page.click("#fishHookBtn", { force: true });
+  await page.waitForSelector("#fishReelBtn", { state: "visible" });
+  let hits = 0, guard = 0;
+  while (hits < 2 && guard < 300) {
+    const inZone = await page.evaluate(() => {
+      const s = fishSession;
+      return !!(s && s.stage === "reel" && s.segment >= s.zoneStart && s.segment < s.zoneStart + s.tier.zoneSize);
+    });
+    if (inZone) { await page.click("#fishReelBtn"); hits++; await page.waitForTimeout(150); } else { await page.waitForTimeout(30); }
+    guard++;
+  }
+  await page.waitForSelector(".fish-result", { state: "visible" });
+  const medalsAfter = await page.evaluate(() => state.defenderMedals);
+  assert(medalsAfter === 62, `expected 42 + 20 (mythic reward) = 62 medals, got ${medalsAfter}`);
+  assert(await page.evaluate(() => !!state.achievements.fishMythic), "fishMythic achievement did not unlock");
 });
 
 async function main() {
