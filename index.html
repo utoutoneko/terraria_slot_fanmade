@@ -203,6 +203,139 @@
     </div>
   </div>
 </div>
+<div class="modalbackdrop" id="changelogModal">
+  <div class="modalbox">
+    <button class="modalclose" id="changelogClose">✕</button>
+    <div class="guideheader">
+      <img class="spr" id="changelogIconBig" style="width:24px;height:24px;">
+      <span class="pixel guidename"><span class="hidden-ja">更新履歴</span><span class="hidden-en">Update History</span></span>
+    </div>
+    <div class="howtotext">
+      <div class="clog-ja">
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#13</span>今回のアップデート</div><ul>
+          <li>確変(ボーナスモード)やラッキーポーションが発動中にもう一度条件を満たしても消えず、残り回数が「延長」されるように改善</li>
+          <li>iPadなど画面がスクロールできる端末で、地上の装飾や星が筐体より手前に表示されてしまう不具合を修正</li>
+          <li>夜空から降ってくる星が地面に少しめり込んで表示される不具合を修正</li>
+          <li>この更新履歴ビューアを追加(木をクリックすると閲覧可能)</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#12</span>ガイド文の記述修正・マナ表示バグ修正</div><ul>
+          <li>マナの星アイコンが4個までしか表示されない不具合を修正(表示上限を5個に。マナの内部数値自体は元々正しかった)</li>
+          <li>ガイド内の説明文が「ミミック限定」のような古い書き方のまま残っていた箇所(マナ/フリースピン/確変)を、全テーマ共通の表現に修正</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#11</span>タイトルを「TERRARIA SLOTS」に変更・隠し攻略本を追加</div><ul>
+          <li>筐体上部のロゴ表記を「MIMIC SLOTS」→「TERRARIA SLOTS」に変更</li>
+          <li>ゲーム内のどこかに隠された合言葉を入力すると開く、隠し攻略本ページを追加(ヒントは開発秘話コーナーに一つだけ)</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#10</span>テーマ解禁を一直線化・還元率を大幅強化・ショップ大改訂</div><ul>
+          <li>テーマ解禁順を「ミミック→スライム→ゾンビ→ゼニス」に固定、解禁コストをスライム5枚/ゾンビ20枚/ゼニス50枚に変更(順番を飛ばして解禁することはできない)</li>
+          <li>還元率を後のテーマほど過激に強化:スライム約492%・ゾンビ約1001%・ゼニス約1076%(モンテカルロ50万スピンで実測)</li>
+          <li>ショップに新商品「実績の攻略本」(メダル100枚)を追加、既存の商品も含め価格を全体的に値上げ</li>
+          <li>旅商人の立ち位置を修正、絵柄がそろった時の効果音をテーマごとに差別化</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#9</span>ゾンビ23種・スライム37種に拡張</div><ul>
+          <li>ゾンビ・スライムの絵柄を、実在する亜種をほぼ網羅する規模まで拡張(従来は各7種)</li>
+          <li>絵柄が増えた分、tierごとの倍率をすべてモンテカルロ実測で再計算・再校正</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#8</span>旅商人を地上NPC化・ショップ拡充・開発秘話ビューア追加</div><ul>
+          <li>旅商人を看板や机と同じ「地上に立つクリックできるNPC」として再配置、ショップ品を6種に拡充(発掘免許皆伝/相棒のミミック/ラッキーコインを追加)</li>
+          <li>草むらのキノコをクリックすると読める「開発秘話」ビューアを追加</li>
+          <li>太陽・月・キノコなど一部の装飾が実はクリックできていなかった重大なバグを修正(隠し実績「月の秘密」に影響していた可能性あり)</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#7</span>テーマ切り替えボタンに解禁条件を追加</div><ul>
+          <li>累計プラチナ貨10,000枚に到達するまで、テーマ切り替えボタン自体を非表示に変更</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#6</span>重大バグ修正:確変・フリースピン・瓶バフがタブ更新で消える問題</div><ul>
+          <li>確変・フリースピン・瓶バフの残り回数がセーブデータに保存されておらず、タブ更新のたびに消えてしまう不具合を修正</li>
+          <li>リセットボタンがこれらの数値を正しくクリアしていなかった不具合もあわせて修正</li>
+          <li>初期ベット額の計算が100倍ズレていた不具合も修正</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#5</span>旅商人ショップを新規実装</div><ul>
+          <li>「オートスピン権利証」「プレミアムボトル」「ターボスピン権利証」の3品を新設</li>
+          <li>検討していた残り6種のテーマ候補と、スライムの昼夜切り替え案は実装しないことを決定</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#4</span>ゾンビ/スライム/ゼニスのスロットテーマを追加</div><ul>
+          <li>新テーマ3種(各7種の絵柄)を追加。ゼニスは9本の剣が盤面に1つずつ全部揃うとベット×3000倍の「完成ボーナス」が発生する特殊ルール付き</li>
+          <li>ディフェンダーのメダル経済を実装(白金貨10,000枚→メダル1枚に自動変換)</li>
+          <li>実績一覧をページ送り形式に変更、掛け金の永続化、太陽・月が筐体より前面に出てしまうバグを修正</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#3</span>ショップ通貨をディフェンダーのメダルに決定</div><ul>
+          <li>ディフェンダーのメダル経済とテーマ切り替えバーの土台を実装</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#2</span>自動スピン・幽霊退治などを本実装</div><ul>
+          <li>自動スピン機能(解禁条件付き)、幽霊退治ミニゲームを本実装</li>
+          <li>実績を19種類から50種類に拡張</li>
+          <li>ジャックポット演出をTerraria本編の実素材に統一、効果音の再生遅延を解消、バイオーム壁の全面演出を実装</li>
+          <li>当選確率をモンテカルロ法で再検証</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#1</span>確変ボーナス・天井システムを実装</div><ul>
+          <li>スロットを1ファイルからhtml/css/js/dataの複数ファイル構成に整理</li>
+          <li>掛け金の上限をプラチナ貨100枚まで拡張、確変ボーナスモードと天井(pity)カウンターを実装</li>
+        </ul></div>
+      </div>
+      <div class="clog-en">
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#13</span>This update</div><ul>
+          <li>Bonus Mode and Lucky Potion buffs now EXTEND their remaining count when re-triggered while already active, instead of the re-trigger being wasted</li>
+          <li>Fixed a bug where, on scrollable screens (e.g. iPad), ground decorations and stars could render in front of the cabinet</li>
+          <li>Fixed the falling night star visually sinking slightly into the ground</li>
+          <li>Added this Update History viewer (click the tree to open it)</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#12</span>Guide text fix & mana display bug fix</div><ul>
+          <li>Fixed the mana star row capping visually at 4 icons (raised to 5; the underlying mana value was always correct)</li>
+          <li>Rewrote stale Mimic-only wording in the Guide (mana / free spins / bonus mode) to be theme-generic</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#11</span>Renamed to "TERRARIA SLOTS", added a hidden strategy guide</div><ul>
+          <li>Renamed the cabinet logo from "MIMIC SLOTS" to "TERRARIA SLOTS"</li>
+          <li>Added a hidden strategy guide, reachable only by typing a secret word somewhere on the page (one hint lives in the Dev Diary)</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#10</span>Linear theme unlock order, big RTP boost, shop overhaul</div><ul>
+          <li>Unlock order fixed to Mimic → Slime → Zombie → Zenith, with costs of 5/20/50 Defender Medals (no skipping ahead)</li>
+          <li>RTP escalates hard for later themes: Slime ≈492%, Zombie ≈1001%, Zenith ≈1076% (measured via 500k-spin Monte Carlo)</li>
+          <li>Added a new shop item, the Achievement Guide (100 medals); raised prices across the rest of the shop</li>
+          <li>Fixed the Traveling Merchant's footing; each theme now has its own win jingle</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#9</span>Expanded Zombie to 23 and Slime to 37 symbols</div><ul>
+          <li>Expanded to cover nearly every real Terraria Zombie/Slime variant (was 7 each)</li>
+          <li>Recalibrated every tier's multiplier via Monte Carlo simulation to match</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#8</span>Traveling Merchant as ground NPC, shop expansion, Dev Diary viewer</div><ul>
+          <li>Moved the Merchant to stand on the ground like the sign/table props; expanded the shop to 6 items (added Dig License, Mimic Buddy, Lucky Coin)</li>
+          <li>Added the Dev Diary viewer, opened by clicking the mushroom</li>
+          <li>Fixed a serious bug where the sun/moon/mushroom decorations weren't actually clickable (may have affected the hidden "Moon's Secret" achievement)</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#7</span>Gated the theme-switch button behind a milestone</div><ul>
+          <li>The theme-switch button itself now stays hidden until you've earned 10,000 lifetime Platinum Coins</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#6</span>Critical fix: Bonus Mode / Free Spins / Potion buffs vanishing on refresh</div><ul>
+          <li>Fixed their remaining counts never being saved, so a refresh mid-bonus silently wiped the run</li>
+          <li>Fixed the Reset button not clearing these same values properly</li>
+          <li>Fixed the starting bet amount being off by 100x</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#5</span>Implemented the Traveling Merchant's shop</div><ul>
+          <li>Added Auto-Spin License, Premium Bottle, and Turbo-Spin License</li>
+          <li>Decided against the remaining 6 theme concepts and the day/night Slime-swap idea</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#4</span>Added the Zombie / Slime / Zenith slot themes</div><ul>
+          <li>Added 3 new themes (7 symbols each); Zenith has a special rule where landing all 9 unique swords at once triggers a ×3000 bet bonus</li>
+          <li>Implemented the Defender Medal economy (auto-converts 10,000 Platinum Coins into 1 Medal)</li>
+          <li>Paginated the achievement list, made the bet amount persistent, fixed the sun/moon rendering in front of the cabinet</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#3</span>Chose Defender Medals as the shop currency</div><ul>
+          <li>Built the Defender Medal economy and the theme-switch bar foundation</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#2</span>Shipped Auto-Spin, Ghost Hunt, and more</div><ul>
+          <li>Fully implemented Auto-Spin (with an unlock condition) and the Ghost Hunt minigame</li>
+          <li>Expanded achievements from 19 to 50</li>
+          <li>Unified jackpot effects with real Terraria assets, fixed sound playback delay, added full biome-wall effects</li>
+          <li>Re-verified win probabilities via Monte Carlo simulation</li>
+        </ul></div>
+        <div class="clog-entry"><div class="clog-title"><span class="clog-ver">#1</span>Added Bonus Mode and the pity counter</div><ul>
+          <li>Split the single-file prototype into separate html/css/js/data files</li>
+          <li>Raised the max bet to 100 Platinum Coins; added the Bonus Mode bonus round and pity (guaranteed-bonus) counter</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+</div>
 <!-- No button, no menu entry, no mention anywhere in the guide or dev diary links here on
      purpose - this is only reachable by typing a specific word anywhere on the page (see
      game.js). Intentionally undiscoverable through normal play. -->

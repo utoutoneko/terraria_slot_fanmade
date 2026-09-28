@@ -33,6 +33,7 @@ document.querySelectorAll(".themecost img").forEach(img=>{ img.src = SPR.icon_de
 document.getElementById("shopToggleBtn").src = SPR.icon_travelingmerchant;
 document.getElementById("mimicPet").src = SPR.mimic_wood;
 document.getElementById("devlogIconBig").src = SPR.deco_mushroom;
+document.getElementById("changelogIconBig").src = SPR.deco_tree;
 document.getElementById("merchantIconBig").src = SPR.icon_travelingmerchant;
 document.getElementById("autoSpinIcon").src = SPR.deco_stressball;
 document.getElementById("digPickIcon").src = SPR.icon_pickaxe;

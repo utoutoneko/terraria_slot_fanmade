@@ -103,9 +103,11 @@ function updateKakuUI(){
   pitylineEl.textContent = on ? "" : (state.lang==="en" ? `Bonus guaranteed in ${left} spins` : `確変まで あと${left}回転(天井)`);
 }
 function startKakuhen(reasonJa, reasonEn, viaPity){
-  kakuhenRemaining = KAKU_SPINS; state.pityCount = 0; state.kakuhenTriggers=(state.kakuhenTriggers||0)+1;
+  const stacking = kakuhenRemaining>0;
+  kakuhenRemaining += KAKU_SPINS; // extend rather than overwrite, so a re-trigger mid-bonus is never wasted
+  state.pityCount = 0; state.kakuhenTriggers=(state.kakuhenTriggers||0)+1;
   updateKakuUI();
-  showBanner(state.lang==="en" ? "BONUS MODE!" : "確変突入!!", 1800);
+  showBanner(state.lang==="en" ? (stacking?"BONUS EXTENDED!":"BONUS MODE!") : (stacking?"確変延長!!":"確変突入!!"), 1800);
   showToast(state.lang==="en" ? reasonEn : reasonJa);
   spawnParticles("rainbow",12); sfxBigReveal();
   if(viaPity) unlockAch("kakuhenPity");
@@ -113,7 +115,7 @@ function startKakuhen(reasonJa, reasonEn, viaPity){
 function renderBottleUI(){
   const total = (state.bottles||0) + (state.superBottles||0);
   bottleCountEl.textContent = total;
-  useBottleBtn.disabled = !(total>0) || bottleBuffRemaining>0;
+  useBottleBtn.disabled = !(total>0);
 }
 function updateBottleBuffBadge(){
   if(bottleBuffRemaining>0){ bottleBuffBadge.classList.add("show"); bbLeft.textContent=bottleBuffRemaining; bbLeftEn.textContent=bottleBuffRemaining; }
@@ -298,7 +300,7 @@ function spawnFallingStar(){
   star.style.top = '-20px';
   document.body.appendChild(star);
   const fallMs = 900 + Math.random()*400;
-  const landY = skyH - 6;
+  const landY = skyH - 20; // star's rendered height is ~18-20px; bottom edge should land flush with the grass top (skyH), not sink into it
   star.animate([{top:'-20px'},{top:landY+'px'}], {duration:fallMs, easing:'ease-in'});
   setTimeout(()=>{
     if(!star.isConnected) return;
@@ -388,16 +390,20 @@ autoSpinBtn.onclick=()=>{
 };
 useBottleBtn.onclick=()=>{
   const hasSuper = (state.superBottles||0)>0, hasRegular = (state.bottles||0)>0;
-  if((!hasSuper && !hasRegular) || bottleBuffRemaining>0) return;
-  if(hasSuper){ state.superBottles -= 1; bottleBuffMult = 3; }
-  else { state.bottles -= 1; bottleBuffMult = 2; }
-  bottleBuffRemaining = 5;
+  if(!hasSuper && !hasRegular) return;
+  const stacking = bottleBuffRemaining>0;
+  const newMult = hasSuper ? 3 : 2;
+  if(hasSuper){ state.superBottles -= 1; } else { state.bottles -= 1; }
+  bottleBuffMult = stacking ? Math.max(bottleBuffMult, newMult) : newMult; // stacking a weaker bottle never downgrades the active buff
+  bottleBuffRemaining += 5; // extend rather than overwrite, so using another bottle mid-buff is never wasted
   state.bottleUsedCount = (state.bottleUsedCount||0)+1;
   renderBottleUI(); updateBottleBuffBadge(); saveState(); sfxGrab();
   const first = unlockAch("bottleUsed");
   unlockAch("bottleAddict");
   if(!first){
-    showToast(state.lang==="en"?`Lucky Potion active! ${bottleBuffMult}x payouts for 5 spins`:`ラッキーポーション発動!5スピン配当${bottleBuffMult}倍`);
+    showToast(state.lang==="en"
+      ? (stacking ? `Lucky Potion extended! ${bottleBuffMult}x payouts for ${bottleBuffRemaining} more spins` : `Lucky Potion active! ${bottleBuffMult}x payouts for 5 spins`)
+      : (stacking ? `ラッキーポーション延長!配当${bottleBuffMult}倍が残り${bottleBuffRemaining}スピンに` : `ラッキーポーション発動!5スピン配当${bottleBuffMult}倍`));
   }
 };
 document.getElementById("coinPile").onclick=()=>{ document.getElementById("payModal").classList.add("show"); };
@@ -679,6 +685,9 @@ document.getElementById("infoModal").onclick=(e)=>{ if(e.target.id==="infoModal"
 document.getElementById("decoMushroom").onclick=()=>{ document.getElementById("devlogModal").classList.add("show"); };
 document.getElementById("devlogClose").onclick=()=>{ document.getElementById("devlogModal").classList.remove("show"); };
 document.getElementById("devlogModal").onclick=(e)=>{ if(e.target.id==="devlogModal") e.currentTarget.classList.remove("show"); };
+document.getElementById("decoTree").onclick=()=>{ document.getElementById("changelogModal").classList.add("show"); };
+document.getElementById("changelogClose").onclick=()=>{ document.getElementById("changelogModal").classList.remove("show"); };
+document.getElementById("changelogModal").onclick=(e)=>{ if(e.target.id==="changelogModal") e.currentTarget.classList.remove("show"); };
 
 // Secret, entirely undiscoverable-by-UI strategy guide viewer: no button, no menu entry, no
 // hint anywhere in the game (not even the dev diary). Only reachable by typing this exact
@@ -1087,11 +1096,12 @@ async function spin(){
     setMsg("擬態を見破れ…!","Spot the mimics...!");
     state.streak=0; updateStreakLine();
   }
-  // bonus mode: never re-triggers while active; ends quietly after its last spin
-  if(!kakuActive){
-    if(wins.length>0 && state.streak===KAKU_STREAK_TRIGGER) startKakuhen(`${KAKU_STREAK_TRIGGER}連勝!確変突入`, `${KAKU_STREAK_TRIGGER}-win streak! Bonus mode`);
-    else if((state.pityCount||0)>=PITY_LIMIT) startKakuhen("天井到達!確変突入","Pity reached! Bonus mode", true);
-  } else if(kakuhenRemaining===0){
+  // bonus mode: a new trigger mid-bonus extends kakuhenRemaining (see startKakuhen) instead of being wasted
+  if(wins.length>0 && state.streak===KAKU_STREAK_TRIGGER){
+    startKakuhen(`${KAKU_STREAK_TRIGGER}連勝!確変突入`, `${KAKU_STREAK_TRIGGER}-win streak! Bonus mode`);
+  } else if(!kakuActive && (state.pityCount||0)>=PITY_LIMIT){
+    startKakuhen("天井到達!確変突入","Pity reached! Bonus mode", true);
+  } else if(kakuActive && kakuhenRemaining===0){
     showToast(state.lang==="en" ? "Bonus mode ended" : "確変終了");
   }
   updateKakuUI();
