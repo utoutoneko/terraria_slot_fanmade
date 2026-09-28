@@ -1,0 +1,12 @@
+{
+  "name": "terraria-slots-fanmade",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Non-commercial Terraria fan-made slot machine for the terrariajp Discord server.",
+  "scripts": {
+    "test": "node tests/regression.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.0"
+  }
+}

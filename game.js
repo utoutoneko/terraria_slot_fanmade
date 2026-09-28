@@ -717,7 +717,10 @@ function renderAchBubble(){
   const unlockedCount = ACHIEVEMENT_DEFS.filter(d=>ach[d.key]).length;
   const pageCount = Math.ceil(ACHIEVEMENT_DEFS.length/ACH_PAGE_SIZE);
   achPage = Math.max(0, Math.min(achPage, pageCount-1));
-  let html = `<span class="ach-title">${state.lang==="en"?`Achievements (${unlockedCount}/${ACHIEVEMENT_DEFS.length})`:`実績 (${unlockedCount}/${ACHIEVEMENT_DEFS.length})`}</span>`;
+  let html = `<div class="ach-header">
+    <span class="ach-title">${state.lang==="en"?`Achievements (${unlockedCount}/${ACHIEVEMENT_DEFS.length})`:`実績 (${unlockedCount}/${ACHIEVEMENT_DEFS.length})`}</span>
+    <button class="ach-sharebtn" id="achShareBtn" title="${state.lang==="en"?"Make a shareable stats card":"シェア用カードを作る"}">📤</button>
+  </div>`;
   html += `<div class="ach-list">`;
   ACHIEVEMENT_DEFS.slice(achPage*ACH_PAGE_SIZE, achPage*ACH_PAGE_SIZE+ACH_PAGE_SIZE).forEach(d=>{
     const got = !!ach[d.key];
@@ -735,6 +738,7 @@ function renderAchBubble(){
   achBubble.innerHTML = html;
   document.getElementById("achPrev").onclick=(e)=>{ e.stopPropagation(); achPage--; renderAchBubble(); };
   document.getElementById("achNext").onclick=(e)=>{ e.stopPropagation(); achPage++; renderAchBubble(); };
+  document.getElementById("achShareBtn").onclick=(e)=>{ e.stopPropagation(); achBubble.classList.remove("show"); renderShareCard(); };
 }
 document.getElementById("grassTable").onclick=(e)=>{
   renderChatLog();
@@ -760,6 +764,109 @@ document.addEventListener("click",(e)=>{
   }
 });
 document.getElementById("infoBtn").onclick=()=>{ document.getElementById("infoModal").classList.add("show"); };
+// Shareable stats card: this is a static, backend-less site with no way for terrariajp
+// members to see each other's progress, so this renders a downloadable image players can
+// post in Discord themselves instead (see README.md's "気になる点" for the fuller context).
+function loadImgAsync(src){
+  return new Promise((resolve)=>{
+    const img = new Image();
+    img.onload = ()=>resolve(img);
+    img.onerror = ()=>resolve(null);
+    img.src = src;
+  });
+}
+async function renderShareCard(){
+  if(document.fonts && document.fonts.ready) await document.fonts.ready;
+  const en = state.lang==="en";
+  const canvas = document.getElementById("shareCanvas");
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  const PIXEL = "'Press Start 2P',monospace";
+
+  ctx.fillStyle = "#120c1a"; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle = "#e8c14a"; ctx.lineWidth = 4; ctx.strokeRect(6,6,W-12,H-12);
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#e8c14a";
+  ctx.font = `20px ${PIXEL}`;
+  ctx.fillText("TERRARIA SLOTS", W/2, 50);
+  ctx.font = `11px ${PIXEL}`;
+  ctx.fillStyle = "#f1e3c6";
+  ctx.fillText(en?"STATS CARD":"実績カード", W/2, 78);
+
+  const highestTheme = THEME_ORDER.slice().reverse().find(id=>state.themeUnlocked && state.themeUnlocked[id]) || "mimic";
+  const themeIcon = await loadImgAsync(SPR[THEME_DEFS[highestTheme].iconKey]);
+  if(themeIcon){ const size=72; ctx.drawImage(themeIcon, W/2-size/2, 96, size, size); }
+
+  const unlockedCount = ACHIEVEMENT_DEFS.filter(d=>state.achievements && state.achievements[d.key]).length;
+  const rows = [
+    [en?"Achievements":"実績", `${unlockedCount} / ${ACHIEVEMENT_DEFS.length}`],
+    [en?"Furthest Theme":"到達テーマ", en?THEME_DEFS[highestTheme].nameEn:THEME_DEFS[highestTheme].nameJa],
+    [en?"Total Spins":"総スピン数", (state.totalSpins||0).toLocaleString()],
+    [en?"Balance":"所持金", formatCoins(state.balance)],
+    [en?"Defender Medals":"防衛メダル", (state.defenderMedals||0).toLocaleString()],
+    [en?"Biggest Jackpot":"最大ジャックポット", formatCoins(state.biggestJackpot||0)],
+    [en?"Bonus Mode Triggers":"確変発動回数", (state.kakuhenTriggers||0).toLocaleString()],
+    [en?"Zenith Assembled":"ゼニス完成回数", (state.zenithAssembles||0).toLocaleString()],
+  ];
+  ctx.textAlign = "left";
+  let y = 210;
+  rows.forEach(([label,val])=>{
+    ctx.fillStyle = "#8577a3"; ctx.font = "12px 'DotGothic16',monospace";
+    ctx.fillText(label, 36, y);
+    ctx.fillStyle = "#f1e3c6"; ctx.font = `13px ${PIXEL}`;
+    ctx.fillText(val, 36, y+22);
+    y += 44;
+  });
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#8577a3"; ctx.font = "8px 'DotGothic16',monospace";
+  ctx.fillText(en?"Non-commercial Terraria fan game - terrariajp Discord":"非商用Terrariaファンメイド - terrariajpサーバー", W/2, H-24);
+
+  document.getElementById("shareCardModal").classList.add("show");
+}
+document.getElementById("shareCardClose").onclick=()=>{ document.getElementById("shareCardModal").classList.remove("show"); };
+document.getElementById("shareCardModal").onclick=(e)=>{ if(e.target.id==="shareCardModal") e.currentTarget.classList.remove("show"); };
+document.getElementById("shareCardDownload").onclick=()=>{
+  const canvas = document.getElementById("shareCanvas");
+  const a = document.createElement("a");
+  a.href = canvas.toDataURL("image/png");
+  a.download = "terraria_slots_stats.png";
+  document.body.appendChild(a); a.click(); a.remove();
+};
+document.getElementById("exportSaveBtn").onclick=()=>{
+  saveState();
+  const blob = new Blob([localStorage.getItem(SAVE_KEY) || JSON.stringify(state)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `terraria_slots_save_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showToast(state.lang==="en" ? "Save file downloaded!" : "セーブデータを書き出しました!");
+};
+document.getElementById("importSaveInput").onchange=(e)=>{
+  const file = e.target.files[0];
+  e.target.value = ""; // allow re-selecting the same file again later
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    let parsed;
+    try{ parsed = JSON.parse(reader.result); }
+    catch(err){ showToast(state.lang==="en" ? "That file isn't a valid save." : "セーブデータとして読み込めませんでした"); return; }
+    if(typeof parsed !== "object" || parsed===null || !("balance" in parsed)){
+      showToast(state.lang==="en" ? "That file isn't a valid save." : "セーブデータとして読み込めませんでした");
+      return;
+    }
+    const ok = confirm(state.lang==="en"
+      ? "Load this save? Your current progress on this device will be overwritten."
+      : "このセーブデータを読み込みますか?この端末の現在の進行状況は上書きされます。");
+    if(!ok) return;
+    localStorage.setItem(SAVE_KEY, JSON.stringify(parsed));
+    location.reload();
+  };
+  reader.readAsText(file);
+};
 document.getElementById("infoClose").onclick=()=>{ document.getElementById("infoModal").classList.remove("show"); };
 document.getElementById("infoModal").onclick=(e)=>{ if(e.target.id==="infoModal") e.currentTarget.classList.remove("show"); };
 document.getElementById("decoMushroom").onclick=()=>{
@@ -1361,3 +1468,11 @@ async function playWin(wins, extra){
 }
 
 spinBtn.onclick = spin;
+
+// First-ever visit to this browser (no save existed yet): open the guide once up front,
+// since the UI is dense with icons/decorations and nothing else points a brand-new player
+// at the rules. Marked via a save write so it never reopens automatically again.
+if(isFirstEverVisit){
+  document.getElementById("infoModal").classList.add("show");
+  saveState();
+}
