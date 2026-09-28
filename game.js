@@ -715,15 +715,17 @@ const QUIZ_QUESTIONS = [
     {ja:"ムーンロードを倒すと出現する", en:"It appears after defeating the Moon Lord"},
     {ja:"プレイヤーが種で植える", en:"The player plants it from a seed"}]},
 ];
+const QUIZ_TIME_LIMIT = 8000; // 難易度向上(2026-09-28): 無制限に考えられると易しすぎるため、1問あたり8秒の時間制限を追加
 let quizSession = null;
+let quizTimerId = null;
 function shuffleArr(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function renderQuizIntro(){
   const en = state.lang==="en";
   const canAfford = (state.defenderMedals||0) >= QUIZ_COST;
   document.getElementById("quizBody").innerHTML = `
     <p class="quiz-intro-text">${en
-      ? `Answer ${QUIZ_ROUND_SIZE} Terraria trivia questions (4 choices each). Entry costs ${QUIZ_COST} Defender Medals — the more you get right, the more medals you win back.`
-      : `テラリアの4択クイズに${QUIZ_ROUND_SIZE}問挑戦。参加費はディフェンダーのメダル${QUIZ_COST}枚、正解数が多いほどメダルがもらえる。`}</p>
+      ? `Answer ${QUIZ_ROUND_SIZE} Terraria trivia questions (4 choices each) — you have ${QUIZ_TIME_LIMIT/1000} seconds per question. Entry costs ${QUIZ_COST} Defender Medals — the more you get right, the more medals you win back.`
+      : `テラリアの4択クイズに${QUIZ_ROUND_SIZE}問挑戦(1問${QUIZ_TIME_LIMIT/1000}秒の制限時間あり)。参加費はディフェンダーのメダル${QUIZ_COST}枚、正解数が多いほどメダルがもらえる。`}</p>
     <button class="quiz-startbtn" id="quizStartBtn" ${canAfford?"":"disabled"}>${en?`Start (${QUIZ_COST} medals)`:`挑戦する(${QUIZ_COST}枚)`}</button>
     ${canAfford?"":`<div class="quiz-progress">${en?"Not enough Defender Medals":"ディフェンダーのメダルが足りません"}</div>`}
   `;
@@ -744,28 +746,38 @@ function renderQuizQuestion(){
   const body = document.getElementById("quizBody");
   body.innerHTML = `
     <div class="quiz-progress">${en?"Question":"問題"} ${quizSession.idx+1} / ${quizSession.questions.length}</div>
+    <div class="quiz-timerbar"><div class="quiz-timerfill" id="quizTimerFill"></div></div>
     <div class="quiz-q">${en?q.qEn:q.qJa}</div>
     <div class="quiz-choices">${q.choices.map((c,i)=>`<button class="quiz-choice" data-i="${i}">${en?c.en:c.ja}</button>`).join("")}</div>
   `;
+  const startTime = Date.now();
+  const fill = document.getElementById("quizTimerFill");
+  quizTimerId = setInterval(()=>{
+    const remain = Math.max(0, QUIZ_TIME_LIMIT - (Date.now()-startTime));
+    fill.style.width = `${(remain/QUIZ_TIME_LIMIT)*100}%`;
+    if(remain<=0){ clearInterval(quizTimerId); resolveQuizAnswer(q, body, -1); }
+  }, 60);
   body.querySelectorAll(".quiz-choice").forEach(btn=>{
-    btn.onclick=()=>{
-      const idx = +btn.dataset.i;
-      const picked = q.choices[idx];
-      body.querySelectorAll(".quiz-choice").forEach(b=>b.disabled=true);
-      const buttons = [...body.querySelectorAll(".quiz-choice")];
-      if(picked.correct){ btn.classList.add("quiz-correct"); quizSession.correct++; playReal("unlock",0.5); }
-      else {
-        btn.classList.add("quiz-wrong"); playReal("hit",0.4);
-        const correctIdx = q.choices.findIndex(c=>c.correct);
-        if(correctIdx>=0) buttons[correctIdx].classList.add("quiz-correct");
-      }
-      setTimeout(()=>{
-        quizSession.idx++;
-        if(quizSession.idx < quizSession.questions.length) renderQuizQuestion();
-        else finishQuiz();
-      }, 900);
-    };
+    btn.onclick=()=>{ clearInterval(quizTimerId); resolveQuizAnswer(q, body, +btn.dataset.i); };
   });
+}
+function resolveQuizAnswer(q, body, idx){
+  const buttons = [...body.querySelectorAll(".quiz-choice")];
+  buttons.forEach(b=>b.disabled=true);
+  const picked = idx>=0 ? q.choices[idx] : null;
+  if(picked && picked.correct){
+    buttons[idx].classList.add("quiz-correct"); quizSession.correct++; playReal("unlock",0.5);
+  } else {
+    if(idx>=0) buttons[idx].classList.add("quiz-wrong");
+    playReal("hit",0.4);
+    const correctIdx = q.choices.findIndex(c=>c.correct);
+    if(correctIdx>=0) buttons[correctIdx].classList.add("quiz-correct");
+  }
+  setTimeout(()=>{
+    quizSession.idx++;
+    if(quizSession.idx < quizSession.questions.length) renderQuizQuestion();
+    else finishQuiz();
+  }, 900);
 }
 function finishQuiz(){
   const en = state.lang==="en";
@@ -778,13 +790,13 @@ function finishQuiz(){
     const room = MEDAL_CAP - (state.defenderMedals||0);
     const given = Math.min(reward, Math.max(0,room));
     state.defenderMedals = (state.defenderMedals||0)+given;
-    if(given>0) sfxCoin();
+    if(given>0){ if(correct===total) sfxJackpot(); else sfxCoin(); }
   }
   if(correct===total) unlockAch("quizPerfect");
   if((state.quizPlayCount||0)>=10) unlockAch("quizMaster");
   saveState(); renderBalance();
   document.getElementById("quizBody").innerHTML = `
-    <div class="quiz-result">${en?`You got ${correct}/${total} correct!<br>+${reward} Defender Medals`:`${total}問中${correct}問正解!<br>ディフェンダーメダル +${reward}枚`}</div>
+    <div class="quiz-result ${correct===total?"bigwin-flash":""}">${en?`You got ${correct}/${total} correct!<br>+${reward} Defender Medals`:`${total}問中${correct}問正解!<br>ディフェンダーメダル +${reward}枚`}</div>
     <button class="quiz-retrybtn" id="quizRetryBtn">${en?"Back":"戻る"}</button>
   `;
   document.getElementById("quizRetryBtn").onclick=()=>renderQuizIntro();
@@ -795,17 +807,17 @@ document.getElementById("quizLaunchBtn").onclick=()=>{
   renderQuizIntro();
   document.getElementById("quizModal").classList.add("show");
 };
-document.getElementById("quizModalClose").onclick=()=>{ document.getElementById("quizModal").classList.remove("show"); quizSession=null; };
-document.getElementById("quizModal").onclick=(e)=>{ if(e.target.id==="quizModal"){ e.currentTarget.classList.remove("show"); quizSession=null; } };
+document.getElementById("quizModalClose").onclick=()=>{ document.getElementById("quizModal").classList.remove("show"); clearInterval(quizTimerId); quizSession=null; };
+document.getElementById("quizModal").onclick=(e)=>{ if(e.target.id==="quizModal"){ e.currentTarget.classList.remove("show"); clearInterval(quizTimerId); quizSession=null; } };
 
 // 釣りミニゲーム:キャスト→アタリ待ち→アワセ→リールQTEの4段階。実在するテラリアの魚種名を採用しているが、
 // terraria.wiki.gg本体がこのセッションのネットワーク環境からCloudflareのbot対策で到達不能だったため、
 // スプライトは同じ雰囲気に寄せた自作のドット絵アイコン(sprites_data.jsのfish_*/deco_bobber/icon_fishingrod)を使用。
 const FISH_COST = 8;
 const FISH_SEGMENTS = 8;
-const FISH_TICK_MS = 260;
+const FISH_TICK_MS = 190; // 難易度向上(2026-09-28): 260→190msでマーカーの移動を速く
 const FISH_ATTEMPTS = 5;
-const FISH_NEED_HITS = 2;
+const FISH_NEED_HITS = 3; // 難易度向上(2026-09-28): 2/5→3/5に引き上げ
 const FISH_TIERS = [
   { key:"common", nameJa:"トラウト", nameEn:"Trout", weight:55, reward:[1,2], zoneSize:4, iconKey:"fish_common" },
   { key:"rare", nameJa:"クリムゾンタイガーフィッシュ", nameEn:"Crimson Tigerfish", weight:28, reward:[4,4], zoneSize:3, iconKey:"fish_rare" },
@@ -853,10 +865,11 @@ function startBiteWindow(){
     <div class="fish-bite pixel">${en?"A bite!! Hook it now!":"アタリだ!!今アワセろ!"}</div>
     <button class="quiz-startbtn fish-hook-btn" id="fishHookBtn">${en?"Hook!":"アワセる!"}</button>`;
   playReal("hit",0.5);
-  const biteTimeout = setTimeout(()=>{ if(fishSession && fishSession.stage==="bite") finishFishEscaped(); }, 1500);
+  const biteTimeout = setTimeout(()=>{ if(fishSession && fishSession.stage==="bite") finishFishEscaped(); }, 1100); // 難易度向上(2026-09-28): 1500→1100ms
   document.getElementById("fishHookBtn").onclick=()=>{
     clearTimeout(biteTimeout);
     if(!fishSession || fishSession.stage!=="bite") return;
+    sfxGrab();
     startReelQte();
   };
 }
@@ -909,12 +922,12 @@ function finishFishCaught(){
   const room = MEDAL_CAP - (state.defenderMedals||0);
   const given = Math.min(reward, Math.max(0,room));
   state.defenderMedals = (state.defenderMedals||0)+given;
-  if(given>0) sfxCoin();
+  if(given>0){ if(tier.key==="mythic") sfxJackpot(); else sfxCoin(); }
   if((state.fishTierCounts.mythic||0)>=1) unlockAch("fishMythic");
   if((state.fishCaught||0)>=20) unlockAch("fishVeteran");
   saveState(); renderBalance();
   document.getElementById("fishBody").innerHTML = `
-    <div class="fish-result">
+    <div class="fish-result ${tier.key==="mythic"?"bigwin-flash":""}">
       <img class="spr fish-result-img" src="${SPR[tier.iconKey]}">
       <div class="pixel">${en?`Caught a ${tier.nameEn}!`:`${tier.nameJa}を釣り上げた!`}</div>
       <div class="pixel">+${given} ${en?"Defender Medals":"ディフェンダーメダル"}</div>
@@ -986,7 +999,7 @@ function startDraw(){
     <div class="draw-mode-label">${en?mode.labelEn:mode.labelJa}</div>
     <div class="draw-anim">${mode.emoji}</div>
   `;
-  playReal("hit",0.4);
+  playReal("doorOpen",0.5);
   setTimeout(()=>finishDraw(), 900);
 }
 function finishDraw(){
@@ -997,13 +1010,15 @@ function finishDraw(){
   const room = MEDAL_CAP - (state.defenderMedals||0);
   const given = Math.min(tier.reward, Math.max(0,room));
   state.defenderMedals = (state.defenderMedals||0)+given;
-  if(given>0) sfxCoin();
+  if(tier.key==="jackpot") sfxJackpot();
+  else if(tier.key==="small"||tier.key==="mid") playReal("starPickup",0.55);
+  else if(given>0) sfxCoin();
   if(tier.key==="jackpot") unlockAch("drawJackpot");
   if((state.drawPlayCount||0)>=30) unlockAch("drawRegular");
   saveState(); renderBalance();
   document.getElementById("drawBody").innerHTML = `
-    <div class="draw-result-icon">${tier.emoji}</div>
-    <div class="quiz-result">${en?`${tier.en}!<br>+${given} Defender Medals`:`${tier.ja}!<br>ディフェンダーメダル +${given}枚`}</div>
+    <div class="draw-result-icon ${tier.key==="jackpot"?"bigwin-flash":""}">${tier.emoji}</div>
+    <div class="quiz-result ${tier.key==="jackpot"?"bigwin-flash":""}">${en?`${tier.en}!<br>+${given} Defender Medals`:`${tier.ja}!<br>ディフェンダーメダル +${given}枚`}</div>
     <button class="quiz-retrybtn" id="drawBackBtn">${en?"Back":"戻る"}</button>
   `;
   document.getElementById("drawBackBtn").onclick=()=>renderDrawIntro();
@@ -1098,10 +1113,11 @@ function cashOutCoinflip(){
   const room = MEDAL_CAP - (state.defenderMedals||0);
   const given = Math.min(reward, Math.max(0,room));
   state.defenderMedals = (state.defenderMedals||0)+given;
-  sfxCoin();
+  const bigWin = s.streak>=3;
+  if(bigWin) sfxJackpot(); else sfxCoin();
   saveState(); renderBalance();
   document.getElementById("coinflipBody").innerHTML = `
-    <div class="quiz-result">${en?`Cashed out ${given} Defender Medals!`:`ディフェンダーメダル${given}枚を換金した!`}</div>
+    <div class="quiz-result ${bigWin?"bigwin-flash":""}">${en?`Cashed out ${given} Defender Medals!`:`ディフェンダーメダル${given}枚を換金した!`}</div>
     <button class="quiz-retrybtn" id="coinflipBackBtn">${en?"Back":"戻る"}</button>
   `;
   document.getElementById("coinflipBackBtn").onclick=()=>renderCoinflipIntro();
@@ -1174,13 +1190,14 @@ function finishRoulette(){
   const color = rouletteColor(n);
   const bet = ROULETTE_BETS.find(b=>b.key===rouletteChoice.betKey);
   const win = bet.check(n);
-  let given = 0;
+  let given = 0, bigWin = false;
   if(win){
     const totalReturn = rouletteChoice.stake * (1+bet.pays);
     const room = MEDAL_CAP - (state.defenderMedals||0);
     given = Math.min(totalReturn, Math.max(0,room));
     state.defenderMedals = (state.defenderMedals||0)+given;
-    sfxCoin();
+    bigWin = given>=50;
+    if(bigWin) sfxJackpot(); else sfxCoin();
     state.rouletteMaxWin = Math.max(state.rouletteMaxWin||0, given);
     if(given>=100) unlockAch("rouletteBigWin");
   } else {
@@ -1188,8 +1205,8 @@ function finishRoulette(){
   }
   saveState(); renderBalance();
   document.getElementById("rouletteBody").innerHTML = `
-    <div class="roulette-numresult ${color}">${n}</div>
-    <div class="quiz-result">${win
+    <div class="roulette-numresult ${color} ${bigWin?"bigwin-flash":""}">${n}</div>
+    <div class="quiz-result ${bigWin?"bigwin-flash":""}">${win
       ? (en?`You won! +${given} Defender Medals`:`当たり!ディフェンダーメダル +${given}枚`)
       : (en?"No win this time.":"残念、外れ。")}</div>
     <button class="quiz-retrybtn" id="rouletteBackBtn">${en?"Back":"戻る"}</button>

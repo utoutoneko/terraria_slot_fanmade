@@ -67,6 +67,11 @@ img.merchantnpc:hover{transform:scale(1.15) translateY(-2px);}
 
 .quiz-intro-text{font-size:7.5px;color:var(--paper,#ddd);line-height:1.6;margin-bottom:12px;}
 .quiz-progress{font-size:7px;color:var(--paper,#ddd);opacity:.7;margin-bottom:8px;text-align:center;}
+.quiz-timerbar{height:5px;background:#1a1626;border:1px solid #3a3658;margin-bottom:10px;overflow:hidden;}
+.quiz-timerfill{height:100%;width:100%;background:var(--gold,#e8c14a);transition:width .06s linear;}
+
+.bigwin-flash{animation:bigWinPulse .5s ease-in-out 3;text-shadow:0 0 12px rgba(232,193,74,.9);}
+@keyframes bigWinPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}
 .quiz-q{font-size:8.5px;color:var(--gold,#e8c14a);line-height:1.6;margin-bottom:14px;text-align:center;}
 .quiz-choices{display:flex;flex-direction:column;gap:8px;}
 .quiz-choice{background:#3a3658;border:1px solid var(--gold,#e8c14a);color:var(--paper,#ddd);font-size:7.5px;padding:9px 8px;cursor:pointer;text-align:left;line-height:1.5;}

@@ -271,7 +271,36 @@ check("secret guide loads lazily on the trigger word and its links don't navigat
   const achCount = await frame.evaluate(() => document.querySelectorAll("#ach-body tr").length);
   assert(achCount === 108, `expected 108 achievement rows in the guide, got ${achCount}`);
 });
-check("quiz minigame: costs medals, pays out on a perfect round, and blocks play when broke", async (page) => {
+check("quiz minigame: costs medals, the per-question timer counts a timeout as wrong, pays out correctly, and blocks play when broke", async (page) => {
+  await page.evaluate(() => { state.defenderMedals = 50; saveState(); renderBalance(); });
+  await page.click("#shopToggleBtn");
+  await page.click("#quizLaunchBtn");
+  await page.waitForSelector("#quizStartBtn", { state: "visible" });
+  await page.click("#quizStartBtn");
+  await page.waitForSelector(".quiz-choice", { state: "visible" });
+  // Regression check for the 2026-09-28 difficulty pass: let the first question's real 8s timer
+  // run out untouched, and confirm it resolves exactly like a wrong answer (auto-advances, does
+  // not count as correct) instead of stalling or crashing.
+  await page.waitForSelector(".quiz-choice:disabled", { state: "attached", timeout: 9000 });
+  const correctAfterTimeout = await page.evaluate(() => quizSession.correct);
+  assert(correctAfterTimeout === 0, `a timed-out question must not count as correct, got correct=${correctAfterTimeout}`);
+  await page.waitForTimeout(950);
+  for (let i = 0; i < 4; i++) {
+    await page.waitForSelector(".quiz-choice", { state: "visible" });
+    const correctIdx = await page.evaluate(() => quizSession.questions[quizSession.idx].choices.findIndex((c) => c.correct));
+    (await page.$$(".quiz-choice"))[correctIdx].click();
+    await page.waitForTimeout(950);
+  }
+  await page.waitForSelector(".quiz-result", { state: "visible" });
+  const medalsAfter = await page.evaluate(() => state.defenderMedals);
+  assert(medalsAfter === 54, `expected 50 - 3 (entry) + 7 (4/5 reward, first question timed out) = 54 medals, got ${medalsAfter}`);
+  assert(!(await page.evaluate(() => !!state.achievements.firstWin)), "regression: playing the quiz alone must not unlock the spin-based firstWin achievement");
+  await page.click("#quizRetryBtn");
+  await page.evaluate(() => { state.defenderMedals = 0; saveState(); renderBalance(); });
+  const introHtml = await page.evaluate(() => { renderQuizIntro(); return document.getElementById("quizStartBtn").disabled; });
+  assert(introHtml === true, "quiz start button should be disabled with 0 Defender Medals");
+});
+check("quiz minigame: a genuine 5/5 (no timeouts) unlocks the quizPerfect achievement", async (page) => {
   await page.evaluate(() => { state.defenderMedals = 50; saveState(); renderBalance(); });
   await page.click("#shopToggleBtn");
   await page.click("#quizLaunchBtn");
@@ -284,14 +313,7 @@ check("quiz minigame: costs medals, pays out on a perfect round, and blocks play
     await page.waitForTimeout(950);
   }
   await page.waitForSelector(".quiz-result", { state: "visible" });
-  const medalsAfter = await page.evaluate(() => state.defenderMedals);
-  assert(medalsAfter === 62, `expected 50 - 3 (entry) + 15 (perfect reward) = 62 medals, got ${medalsAfter}`);
-  assert(await page.evaluate(() => !!state.achievements.quizPerfect), "quizPerfect achievement did not unlock on a 5/5 round");
-  assert(!(await page.evaluate(() => !!state.achievements.firstWin)), "regression: playing the quiz alone must not unlock the spin-based firstWin achievement");
-  await page.click("#quizRetryBtn");
-  await page.evaluate(() => { state.defenderMedals = 0; saveState(); renderBalance(); });
-  const introHtml = await page.evaluate(() => { renderQuizIntro(); return document.getElementById("quizStartBtn").disabled; });
-  assert(introHtml === true, "quiz start button should be disabled with 0 Defender Medals");
+  assert(await page.evaluate(() => !!state.achievements.quizPerfect), "quizPerfect achievement did not unlock on a real 5/5 round");
 });
 check("fishing minigame: costs medals, a forced-mythic catch pays the right amount, and a missed bite still costs the entry fee", async (page) => {
   await page.evaluate(() => { state.defenderMedals = 50; saveState(); renderBalance(); });
@@ -306,7 +328,7 @@ check("fishing minigame: costs medals, a forced-mythic catch pays the right amou
   await page.click("#fishHookBtn", { force: true });
   await page.waitForSelector("#fishReelBtn", { state: "visible" });
   let hits = 0, guard = 0;
-  while (hits < 2 && guard < 300) {
+  while (hits < 3 && guard < 300) {
     const inZone = await page.evaluate(() => {
       const s = fishSession;
       return !!(s && s.stage === "reel" && s.segment >= s.zoneStart && s.segment < s.zoneStart + s.tier.zoneSize);
