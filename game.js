@@ -942,6 +942,268 @@ document.getElementById("fishLaunchBtn").onclick=()=>{
 document.getElementById("fishModalClose").onclick=()=>{ document.getElementById("fishModal").classList.remove("show"); clearInterval(fishTimer); fishSession=null; };
 document.getElementById("fishModal").onclick=(e)=>{ if(e.target.id==="fishModal"){ e.currentTarget.classList.remove("show"); clearInterval(fishTimer); fishSession=null; } };
 
+// 抽選所:くじ引き・ガチャ・ガラポンは中身が同じ「重み付き抽選」なので1つのメカニクスに統合し、
+// 演出(絵文字+ラベル)だけ毎回3種類からランダムに変える。
+const DRAW_COST = 4;
+const DRAW_MODES = [
+  { emoji:"🎫", labelJa:"くじを引いています…", labelEn:"Drawing a ticket..." },
+  { emoji:"🎁", labelJa:"ガチャを回しています…", labelEn:"Turning the gacha crank..." },
+  { emoji:"🔴", labelJa:"ガラポンを回しています…", labelEn:"Spinning the lottery drum..." },
+];
+const DRAW_TIERS = [
+  { key:"miss", ja:"はずれ", en:"No Luck", weight:45, reward:0, emoji:"😢" },
+  { key:"small", ja:"小当たり", en:"Small Win", weight:30, reward:2, emoji:"🙂" },
+  { key:"mid", ja:"中当たり", en:"Mid Win", weight:15, reward:6, emoji:"😄" },
+  { key:"big", ja:"大当たり", en:"Big Win", weight:8, reward:15, emoji:"🤩" },
+  { key:"jackpot", ja:"特大当たり", en:"Mega Win", weight:2, reward:40, emoji:"🎉" },
+];
+function pickDrawTier(){
+  const total = DRAW_TIERS.reduce((s,t)=>s+t.weight,0);
+  let r = Math.random()*total;
+  for(const t of DRAW_TIERS){ if(r<t.weight) return t; r-=t.weight; }
+  return DRAW_TIERS[0];
+}
+function renderDrawIntro(){
+  const en = state.lang==="en";
+  const canAfford = (state.defenderMedals||0) >= DRAW_COST;
+  document.getElementById("drawBody").innerHTML = `
+    <p class="quiz-intro-text">${en
+      ? `A lucky draw counter that appears as a lottery ticket, a gacha capsule, or a lottery drum at random. ${DRAW_COST} Defender Medals per try, 0 to 40 medals back depending on the prize.`
+      : `くじ引き・ガチャ・ガラポンがランダムに出てくる抽選所。1回${DRAW_COST}枚で挑戦、景品に応じて0〜40枚が返ってくる。`}</p>
+    <button class="quiz-startbtn" id="drawStartBtn" ${canAfford?"":"disabled"}>${en?`Try (${DRAW_COST} medals)`:`挑戦する(${DRAW_COST}枚)`}</button>
+    ${canAfford?"":`<div class="quiz-progress">${en?"Not enough Defender Medals":"ディフェンダーのメダルが足りません"}</div>`}
+  `;
+  const btn = document.getElementById("drawStartBtn");
+  if(btn && !btn.disabled) btn.onclick=()=>startDraw();
+}
+function startDraw(){
+  if((state.defenderMedals||0) < DRAW_COST){ showToast(state.lang==="en"?"Not enough Defender Medals":"ディフェンダーのメダルが足りません"); renderDrawIntro(); return; }
+  state.defenderMedals -= DRAW_COST;
+  saveState(); renderBalance();
+  const en = state.lang==="en";
+  const mode = DRAW_MODES[Math.floor(Math.random()*DRAW_MODES.length)];
+  document.getElementById("drawBody").innerHTML = `
+    <div class="draw-mode-label">${en?mode.labelEn:mode.labelJa}</div>
+    <div class="draw-anim">${mode.emoji}</div>
+  `;
+  playReal("hit",0.4);
+  setTimeout(()=>finishDraw(), 900);
+}
+function finishDraw(){
+  const en = state.lang==="en";
+  const tier = pickDrawTier();
+  state.drawPlayCount = (state.drawPlayCount||0)+1;
+  if(tier.key==="jackpot") state.drawJackpotCount = (state.drawJackpotCount||0)+1;
+  const room = MEDAL_CAP - (state.defenderMedals||0);
+  const given = Math.min(tier.reward, Math.max(0,room));
+  state.defenderMedals = (state.defenderMedals||0)+given;
+  if(given>0) sfxCoin();
+  if(tier.key==="jackpot") unlockAch("drawJackpot");
+  if((state.drawPlayCount||0)>=30) unlockAch("drawRegular");
+  saveState(); renderBalance();
+  document.getElementById("drawBody").innerHTML = `
+    <div class="draw-result-icon">${tier.emoji}</div>
+    <div class="quiz-result">${en?`${tier.en}!<br>+${given} Defender Medals`:`${tier.ja}!<br>ディフェンダーメダル +${given}枚`}</div>
+    <button class="quiz-retrybtn" id="drawBackBtn">${en?"Back":"戻る"}</button>
+  `;
+  document.getElementById("drawBackBtn").onclick=()=>renderDrawIntro();
+}
+document.getElementById("drawLaunchBtn").onclick=()=>{
+  document.getElementById("shopModal").classList.remove("show");
+  renderDrawIntro();
+  document.getElementById("drawModal").classList.add("show");
+};
+document.getElementById("drawModalClose").onclick=()=>{ document.getElementById("drawModal").classList.remove("show"); };
+document.getElementById("drawModal").onclick=(e)=>{ if(e.target.id==="drawModal") e.currentTarget.classList.remove("show"); };
+
+// コインフリップ:賭け金を選んでコイン投げ、当たるたびに持ち金×1.9で伸ばせるプッシュユアラック方式。
+// 1.9倍(2倍未満)にしてあるのは、続けるほど期待値がわずかに下がる本物のハウスエッジを再現するため。
+const COINFLIP_STAKES = [2,5,10,20];
+const COINFLIP_MULT = 1.9;
+let coinflipSession = null;
+function renderCoinflipIntro(){
+  const en = state.lang==="en";
+  const medals = state.defenderMedals||0;
+  coinflipSession = null;
+  document.getElementById("coinflipBody").innerHTML = `
+    <p class="quiz-intro-text">${en
+      ? `Pick a stake, then flip. Win and your pot grows ×1.9 — keep flipping or cash out anytime. Lose once and the whole pot is gone.`
+      : `賭け金を選んでコインを投げる。当たれば持ち金が×1.9に増える。続けて賭けるか、好きなタイミングで換金できる。外れると持ち金は全部無くなる。`}</p>
+    <div class="coinflip-stakebtns">${COINFLIP_STAKES.map(s=>`<button class="coinflip-optbtn" data-s="${s}" ${medals<s?"disabled":""}>${s}${en?"":"枚"}</button>`).join("")}</div>
+  `;
+  document.querySelectorAll(".coinflip-stakebtns .coinflip-optbtn").forEach(btn=>{
+    if(btn.disabled) return;
+    btn.onclick=()=>startCoinflip(+btn.dataset.s);
+  });
+}
+function startCoinflip(stake){
+  if((state.defenderMedals||0) < stake){ showToast(state.lang==="en"?"Not enough Defender Medals":"ディフェンダーのメダルが足りません"); renderCoinflipIntro(); return; }
+  state.defenderMedals -= stake;
+  saveState(); renderBalance();
+  coinflipSession = { stake, pot: stake, streak: 0 };
+  renderCoinflipRound();
+}
+function renderCoinflipRound(){
+  const en = state.lang==="en";
+  const s = coinflipSession;
+  document.getElementById("coinflipBody").innerHTML = `
+    <img class="spr coinflip-coin" id="coinflipCoinImg">
+    <div class="coinflip-banktext">${en?`Current pot: ${Math.floor(s.pot)} medals (streak ${s.streak})`:`現在の持ち金:${Math.floor(s.pot)}枚(連勝${s.streak})`}</div>
+    <div class="coinflip-choicebtns">
+      <button class="coinflip-optbtn" id="coinflipFlipBtn">${en?"Flip (50/50)":"賭ける(50%)"}</button>
+      <button class="coinflip-optbtn" id="coinflipCashBtn">${en?"Cash Out":"換金する"}</button>
+    </div>
+  `;
+  document.getElementById("coinflipCoinImg").src = SPR.coin_gold;
+  document.getElementById("coinflipFlipBtn").onclick=()=>doCoinflip();
+  document.getElementById("coinflipCashBtn").onclick=()=>cashOutCoinflip();
+}
+function doCoinflip(){
+  document.getElementById("coinflipCoinImg").classList.add("flipping");
+  document.getElementById("coinflipFlipBtn").disabled = true;
+  document.getElementById("coinflipCashBtn").disabled = true;
+  playReal("hit",0.4);
+  setTimeout(()=>{
+    const win = Math.random() < 0.5;
+    const s = coinflipSession;
+    if(!s) return;
+    if(win){
+      s.pot = s.pot*COINFLIP_MULT;
+      s.streak++;
+      state.coinflipMaxStreak = Math.max(state.coinflipMaxStreak||0, s.streak);
+      if(s.streak>=5) unlockAch("coinflipStreak5");
+      saveState();
+      playReal("unlock",0.5);
+      renderCoinflipRound();
+    } else {
+      playReal("hit",0.6);
+      finishCoinflipLoss();
+    }
+  }, 700);
+}
+function finishCoinflipLoss(){
+  const en = state.lang==="en";
+  document.getElementById("coinflipBody").innerHTML = `
+    <div class="quiz-result">${en?"Tails! You lost the whole pot.":"残念、外れ!持ち金は全部無くなった。"}</div>
+    <button class="quiz-retrybtn" id="coinflipBackBtn">${en?"Back":"戻る"}</button>
+  `;
+  document.getElementById("coinflipBackBtn").onclick=()=>renderCoinflipIntro();
+  coinflipSession = null;
+}
+function cashOutCoinflip(){
+  const en = state.lang==="en";
+  const s = coinflipSession;
+  if(!s) return;
+  const reward = Math.floor(s.pot);
+  const room = MEDAL_CAP - (state.defenderMedals||0);
+  const given = Math.min(reward, Math.max(0,room));
+  state.defenderMedals = (state.defenderMedals||0)+given;
+  sfxCoin();
+  saveState(); renderBalance();
+  document.getElementById("coinflipBody").innerHTML = `
+    <div class="quiz-result">${en?`Cashed out ${given} Defender Medals!`:`ディフェンダーメダル${given}枚を換金した!`}</div>
+    <button class="quiz-retrybtn" id="coinflipBackBtn">${en?"Back":"戻る"}</button>
+  `;
+  document.getElementById("coinflipBackBtn").onclick=()=>renderCoinflipIntro();
+  coinflipSession = null;
+}
+document.getElementById("coinflipLaunchBtn").onclick=()=>{
+  document.getElementById("shopModal").classList.remove("show");
+  renderCoinflipIntro();
+  document.getElementById("coinflipModal").classList.add("show");
+};
+document.getElementById("coinflipModalClose").onclick=()=>{ document.getElementById("coinflipModal").classList.remove("show"); coinflipSession=null; };
+document.getElementById("coinflipModal").onclick=(e)=>{ if(e.target.id==="coinflipModal"){ e.currentTarget.classList.remove("show"); coinflipSession=null; } };
+
+// ルーレット:実物のヨーロピアン式(0が1つ、37マス)と同じ配色・配当・還元率(理論値約97.3%)を再現。
+// 数字ピンポイント賭けは省略し、赤黒/奇偶/レンジ/ドズンのアウトサイドベットのみに絞ってUIを簡潔にしている。
+const ROULETTE_STAKES = [5,10,20,50];
+const ROULETTE_RED = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+function rouletteColor(n){ if(n===0) return "green"; return ROULETTE_RED.has(n) ? "red" : "black"; }
+const ROULETTE_BETS = [
+  { key:"red", ja:"赤", en:"Red", pays:1, check:(n)=>rouletteColor(n)==="red" },
+  { key:"black", ja:"黒", en:"Black", pays:1, check:(n)=>rouletteColor(n)==="black" },
+  { key:"odd", ja:"奇数", en:"Odd", pays:1, check:(n)=>n!==0 && n%2===1 },
+  { key:"even", ja:"偶数", en:"Even", pays:1, check:(n)=>n!==0 && n%2===0 },
+  { key:"low", ja:"1-18", en:"1-18", pays:1, check:(n)=>n>=1 && n<=18 },
+  { key:"high", ja:"19-36", en:"19-36", pays:1, check:(n)=>n>=19 && n<=36 },
+  { key:"d1", ja:"1〜12", en:"1st 12 (1-12)", pays:2, check:(n)=>n>=1 && n<=12 },
+  { key:"d2", ja:"13〜24", en:"2nd 12 (13-24)", pays:2, check:(n)=>n>=13 && n<=24 },
+  { key:"d3", ja:"25〜36", en:"3rd 12 (25-36)", pays:2, check:(n)=>n>=25 && n<=36 },
+];
+let rouletteChoice = { stake:null, betKey:null };
+function renderRouletteIntro(){
+  const en = state.lang==="en";
+  const medals = state.defenderMedals||0;
+  rouletteChoice = { stake:null, betKey:null };
+  document.getElementById("rouletteBody").innerHTML = `
+    <p class="quiz-intro-text">${en
+      ? `A real European-style roulette wheel (single zero). Color / odd-even / high-low pay 1:1, dozens pay 2:1.`
+      : `本物のヨーロピアン式ルーレット(0が1つだけ)。赤黒/奇偶/範囲は配当1:1、ドズン(12個組)は2:1。`}</p>
+    <div class="roulette-stake">${ROULETTE_STAKES.map(s=>`<button data-s="${s}" ${medals<s?"disabled":""}>${s}${en?"":"枚"}</button>`).join("")}</div>
+    <div class="roulette-bettype">${ROULETTE_BETS.map(b=>`<button data-b="${b.key}">${en?b.en:b.ja}</button>`).join("")}</div>
+    <button class="quiz-startbtn" id="rouletteSpinBtn" disabled>${en?"Spin":"スピン"}</button>
+  `;
+  document.querySelectorAll(".roulette-stake button").forEach(btn=>{
+    if(btn.disabled) return;
+    btn.onclick=()=>{ document.querySelectorAll(".roulette-stake button").forEach(b=>b.classList.remove("selected")); btn.classList.add("selected"); rouletteChoice.stake=+btn.dataset.s; updateRouletteSpinBtn(); };
+  });
+  document.querySelectorAll(".roulette-bettype button").forEach(btn=>{
+    btn.onclick=()=>{ document.querySelectorAll(".roulette-bettype button").forEach(b=>b.classList.remove("selected")); btn.classList.add("selected"); rouletteChoice.betKey=btn.dataset.b; updateRouletteSpinBtn(); };
+  });
+  document.getElementById("rouletteSpinBtn").onclick=()=>startRouletteSpin();
+}
+function updateRouletteSpinBtn(){
+  const btn = document.getElementById("rouletteSpinBtn");
+  if(!btn) return;
+  btn.disabled = !(rouletteChoice.stake && rouletteChoice.betKey);
+}
+function startRouletteSpin(){
+  if(!rouletteChoice.stake || !rouletteChoice.betKey) return;
+  if((state.defenderMedals||0) < rouletteChoice.stake){ showToast(state.lang==="en"?"Not enough Defender Medals":"ディフェンダーのメダルが足りません"); renderRouletteIntro(); return; }
+  state.defenderMedals -= rouletteChoice.stake;
+  saveState(); renderBalance();
+  document.getElementById("rouletteBody").innerHTML = `<img class="spr roulette-wheel spinning" id="rouletteWheelImg">`;
+  document.getElementById("rouletteWheelImg").src = SPR.icon_roulette;
+  playReal("hit",0.4);
+  setTimeout(()=>finishRoulette(), 1150);
+}
+function finishRoulette(){
+  const en = state.lang==="en";
+  const n = Math.floor(Math.random()*37);
+  const color = rouletteColor(n);
+  const bet = ROULETTE_BETS.find(b=>b.key===rouletteChoice.betKey);
+  const win = bet.check(n);
+  let given = 0;
+  if(win){
+    const totalReturn = rouletteChoice.stake * (1+bet.pays);
+    const room = MEDAL_CAP - (state.defenderMedals||0);
+    given = Math.min(totalReturn, Math.max(0,room));
+    state.defenderMedals = (state.defenderMedals||0)+given;
+    sfxCoin();
+    state.rouletteMaxWin = Math.max(state.rouletteMaxWin||0, given);
+    if(given>=100) unlockAch("rouletteBigWin");
+  } else {
+    playReal("hit",0.6);
+  }
+  saveState(); renderBalance();
+  document.getElementById("rouletteBody").innerHTML = `
+    <div class="roulette-numresult ${color}">${n}</div>
+    <div class="quiz-result">${win
+      ? (en?`You won! +${given} Defender Medals`:`当たり!ディフェンダーメダル +${given}枚`)
+      : (en?"No win this time.":"残念、外れ。")}</div>
+    <button class="quiz-retrybtn" id="rouletteBackBtn">${en?"Back":"戻る"}</button>
+  `;
+  document.getElementById("rouletteBackBtn").onclick=()=>renderRouletteIntro();
+}
+document.getElementById("rouletteLaunchBtn").onclick=()=>{
+  document.getElementById("shopModal").classList.remove("show");
+  renderRouletteIntro();
+  document.getElementById("rouletteModal").classList.add("show");
+};
+document.getElementById("rouletteModalClose").onclick=()=>{ document.getElementById("rouletteModal").classList.remove("show"); };
+document.getElementById("rouletteModal").onclick=(e)=>{ if(e.target.id==="rouletteModal") e.currentTarget.classList.remove("show"); };
+
 document.getElementById("payClose").onclick=()=>{ document.getElementById("payModal").classList.remove("show"); };
 document.getElementById("payModal").onclick=(e)=>{ if(e.target.id==="payModal") e.currentTarget.classList.remove("show"); };
 document.getElementById("digToggle").onclick=()=>{ document.getElementById("digModal").classList.add("show"); renderDig(); };
@@ -1052,6 +1314,10 @@ const ACHIEVEMENT_DEFS = [
   {key:"quizMaster", ja:"クイズマイスター", en:"Quiz Master", condJa:"テラリアクイズに通算10回挑戦する"},
   {key:"fishMythic", ja:"クリスタルの釣り人", en:"Crystal Angler", condJa:"釣りでクリスタルサーペントを釣り上げる"},
   {key:"fishVeteran", ja:"釣り名人", en:"Master Angler", condJa:"釣りで通算20匹釣り上げる"},
+  {key:"drawJackpot", ja:"抽選の女神", en:"Goddess of the Draw", condJa:"抽選所で特大当たりを引く"},
+  {key:"drawRegular", ja:"抽選所の常連", en:"Lucky Draw Regular", condJa:"抽選所に通算30回挑戦する"},
+  {key:"coinflipStreak5", ja:"コイントスの覇者", en:"Coin Toss Champion", condJa:"コインフリップで5連勝する"},
+  {key:"rouletteBigWin", ja:"ルーレットの大勝負", en:"Roulette High Roller", condJa:"ルーレットで1回に100枚以上のメダルを獲得する"},
 ];
 const ACH_PAGE_SIZE = 10;
 let achPage = 0;

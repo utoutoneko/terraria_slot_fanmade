@@ -115,7 +115,7 @@ check("coin pile opens paytable", async (page) => {
 check("sign opens achievement list (104 entries, 11 pages)", async (page) => {
   await page.click("#standSign"); await page.waitForTimeout(100);
   assert(await page.evaluate(() => document.getElementById("achBubble").classList.contains("show")), "achievement bubble did not open");
-  assert((await page.evaluate(() => ACHIEVEMENT_DEFS.length)) === 104, "expected exactly 104 achievements");
+  assert((await page.evaluate(() => ACHIEVEMENT_DEFS.length)) === 108, "expected exactly 108 achievements");
   const pageLabel = await page.evaluate(() => document.querySelector(".ach-pagenum").textContent.trim());
   assert(pageLabel === "1 / 11", `expected page "1 / 11", got "${pageLabel}"`);
 });
@@ -269,7 +269,7 @@ check("secret guide loads lazily on the trigger word and its links don't navigat
   await page.waitForTimeout(300);
   assert(page.url() === urlBefore, "clicking a guide link navigated the page (regression: srcdoc base-URL bug)");
   const achCount = await frame.evaluate(() => document.querySelectorAll("#ach-body tr").length);
-  assert(achCount === 104, `expected 104 achievement rows in the guide, got ${achCount}`);
+  assert(achCount === 108, `expected 108 achievement rows in the guide, got ${achCount}`);
 });
 check("quiz minigame: costs medals, pays out on a perfect round, and blocks play when broke", async (page) => {
   await page.evaluate(() => { state.defenderMedals = 50; saveState(); renderBalance(); });
@@ -318,6 +318,65 @@ check("fishing minigame: costs medals, a forced-mythic catch pays the right amou
   const medalsAfter = await page.evaluate(() => state.defenderMedals);
   assert(medalsAfter === 62, `expected 42 + 20 (mythic reward) = 62 medals, got ${medalsAfter}`);
   assert(await page.evaluate(() => !!state.achievements.fishMythic), "fishMythic achievement did not unlock");
+});
+check("lucky draw (kuji/gacha/garapon unified): costs medals, a forced jackpot pays the right amount", async (page) => {
+  await page.evaluate(() => { state.defenderMedals = 50; saveState(); renderBalance(); });
+  await page.click("#shopToggleBtn");
+  await page.click("#drawLaunchBtn");
+  await page.waitForSelector("#drawStartBtn", { state: "visible" });
+  await page.evaluate(() => { pickDrawTier = () => DRAW_TIERS.find((t) => t.key === "jackpot"); });
+  await page.click("#drawStartBtn");
+  await page.waitForTimeout(1000);
+  const medalsAfter = await page.evaluate(() => state.defenderMedals);
+  assert(medalsAfter === 86, `expected 50 - 4 (entry fee) + 40 (jackpot reward) = 86 medals, got ${medalsAfter}`);
+  assert(await page.evaluate(() => !!state.achievements.drawJackpot), "drawJackpot achievement did not unlock");
+});
+check("coin flip: chained wins compound the pot at x1.9, a loss wipes it, cash-out banks the medals", async (page) => {
+  await page.evaluate(() => { state.defenderMedals = 50; saveState(); renderBalance(); });
+  await page.click("#shopToggleBtn");
+  await page.click("#coinflipLaunchBtn");
+  await page.waitForSelector(".coinflip-stakebtns button", { state: "visible" });
+  await page.evaluate(() => { Math.random = () => 0; }); // forces a win (0 < 0.5) every flip
+  const stakeBtns = await page.$$(".coinflip-stakebtns button");
+  await stakeBtns[1].click(); // stake = 5
+  await page.waitForSelector("#coinflipFlipBtn", { state: "visible" });
+  await page.click("#coinflipFlipBtn");
+  await page.waitForTimeout(750);
+  await page.click("#coinflipFlipBtn");
+  await page.waitForTimeout(750);
+  await page.click("#coinflipCashBtn");
+  await page.waitForTimeout(150);
+  const medalsAfter = await page.evaluate(() => state.defenderMedals);
+  assert(medalsAfter === 63, `expected 45 (after 5-medal stake) + floor(5*1.9*1.9)=18 = 63 medals, got ${medalsAfter}`);
+  // now verify a loss wipes the whole pot instead of just the stake
+  await page.evaluate(() => { renderCoinflipIntro(); });
+  await page.waitForSelector(".coinflip-stakebtns button", { state: "visible" });
+  await page.evaluate(() => { Math.random = () => 0.99; }); // forces a loss
+  const stakeBtns2 = await page.$$(".coinflip-stakebtns button");
+  await stakeBtns2[0].click(); // stake = 2
+  await page.waitForSelector("#coinflipFlipBtn", { state: "visible" });
+  const afterStake2 = await page.evaluate(() => state.defenderMedals);
+  await page.click("#coinflipFlipBtn");
+  await page.waitForTimeout(750);
+  const medalsFinal = await page.evaluate(() => state.defenderMedals);
+  assert(medalsFinal === afterStake2, `a loss should not deduct further beyond the already-staked amount (${afterStake2}), got ${medalsFinal}`);
+});
+check("roulette: matches real European-wheel color mapping and pays out red/black bets 1:1", async (page) => {
+  await page.evaluate(() => { state.defenderMedals = 50; saveState(); renderBalance(); });
+  await page.click("#shopToggleBtn");
+  await page.click("#rouletteLaunchBtn");
+  await page.waitForSelector(".roulette-stake button", { state: "visible" });
+  const spinDisabledInitially = await page.evaluate(() => document.getElementById("rouletteSpinBtn").disabled);
+  assert(spinDisabledInitially, "spin button should start disabled before a stake and bet type are chosen");
+  const stakeBtns = await page.$$(".roulette-stake button");
+  await stakeBtns[0].click(); // stake = 5
+  const betBtns = await page.$$(".roulette-bettype button");
+  await betBtns[0].click(); // "red"
+  await page.evaluate(() => { Math.random = () => (1 / 37) + 0.001; }); // forces n=1, a red number
+  await page.click("#rouletteSpinBtn");
+  await page.waitForTimeout(1300);
+  const medalsAfter = await page.evaluate(() => state.defenderMedals);
+  assert(medalsAfter === 55, `expected 50 - 5 (stake) + 10 (1:1 payout on a 5-medal red bet) = 55 medals, got ${medalsAfter}`);
 });
 
 async function main() {

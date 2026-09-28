@@ -41,6 +41,12 @@ document.getElementById("quizLaunchIcon").src = SPR.icon_achguide;
 document.getElementById("quizIconBig").src = SPR.icon_achguide;
 document.getElementById("fishLaunchIcon").src = SPR.icon_fishingrod;
 document.getElementById("fishIconBig").src = SPR.icon_fishingrod;
+document.getElementById("drawLaunchIcon").src = SPR.coin_platinum;
+document.getElementById("drawIconBig").src = SPR.coin_platinum;
+document.getElementById("coinflipLaunchIcon").src = SPR.coin_gold;
+document.getElementById("coinflipIconBig").src = SPR.coin_gold;
+document.getElementById("rouletteLaunchIcon").src = SPR.icon_roulette;
+document.getElementById("rouletteIconBig").src = SPR.icon_roulette;
 
 document.getElementById("dirtTex").style.backgroundImage = `url(${SPR.wall_dirt})`;
 document.getElementById("stoneTex").style.backgroundImage = `url(${SPR.wall_stone})`;
@@ -284,7 +290,8 @@ function formatCoins(v){
 }
 
 const SAVE_KEY = "mimicslot_terrariajp_save_v3";
-const DEFAULT_STATE = { balance: 10*GOLD, lang:"ja", sound:true, digCooldownUntil:0, ghostCooldownUntil:0, achievements:{}, jackpotPool: 5000, streak:0, bottles:0, totalSpins:0, symbolsWon:{}, starFragments:0, mana:0, totalDigs:0, freeSpinTriggers:0, jackpotWins:0, manaUsed:0, pityCount:0, kakuhenTriggers:0, symbolWinCounts:{}, bottleUsedCount:0, biggestJackpot:0, moonClicks:0, totalGhosts:0, defenderMedals:0, betIndex:3, activeTheme:"mimic", themeUnlocked:{mimic:true}, zenithAssembles:0, superBottles:0, turboUnlocked:false, autoSpinForceUnlocked:false, freeSpinsRemaining:0, bottleBuffRemaining:0, bottleBuffMult:2, kakuhenRemaining:0, manaPurifyNextSpin:false, lastRealBet:0, themeBtnUnlocked:false, turboEnabled:true, digGhostFastCooldown:false, mimicPetOwned:false, mimicPetOn:true, luckyCoinOwned:false, achGuideOwned:false, betLevelsUsed:{}, treeClicks:0, mushroomClicks:0, medalCapToastShown:false, quizPlayCount:0, quizPerfectCount:0, fishCaught:0, fishTierCounts:{} };
+const DEFAULT_STATE = { balance: 10*GOLD, lang:"ja", sound:true, digCooldownUntil:0, ghostCooldownUntil:0, achievements:{}, jackpotPool: 5000, streak:0, bottles:0, totalSpins:0, symbolsWon:{}, starFragments:0, mana:0, totalDigs:0, freeSpinTriggers:0, jackpotWins:0, manaUsed:0, pityCount:0, kakuhenTriggers:0, symbolWinCounts:{}, bottleUsedCount:0, biggestJackpot:0, moonClicks:0, totalGhosts:0, defenderMedals:0, betIndex:3, activeTheme:"mimic", themeUnlocked:{mimic:true}, zenithAssembles:0, superBottles:0, turboUnlocked:false, autoSpinForceUnlocked:false, freeSpinsRemaining:0, bottleBuffRemaining:0, bottleBuffMult:2, kakuhenRemaining:0, manaPurifyNextSpin:false, lastRealBet:0, themeBtnUnlocked:false, turboEnabled:true, digGhostFastCooldown:false, mimicPetOwned:false, mimicPetOn:true, luckyCoinOwned:false, achGuideOwned:false, betLevelsUsed:{}, treeClicks:0, mushroomClicks:0, medalCapToastShown:false, quizPlayCount:0, quizPerfectCount:0, fishCaught:0, fishTierCounts:{},
+  drawPlayCount:0, drawJackpotCount:0, coinflipMaxStreak:0, rouletteMaxWin:0 };
 const isFirstEverVisit = !localStorage.getItem(SAVE_KEY); // captured before loadState() touches storage
 let state = loadState();
 function loadState(){ try{ const raw=localStorage.getItem(SAVE_KEY); if(!raw) return {...DEFAULT_STATE}; return {...DEFAULT_STATE, ...JSON.parse(raw)}; }catch(e){ return {...DEFAULT_STATE}; } }
