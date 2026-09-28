@@ -84,7 +84,7 @@ const KAKU_SPINS = 5;      // bonus mode length (spins)
 const KAKU_MULT = 1.5;     // payout multiplier during bonus mode
 const PITY_LIMIT = 100;    // paid spins without bonus mode before it is forced ("tenjou")
 const KAKU_STREAK_TRIGGER = 3;
-const ZENITH_ASSEMBLE_MULT = 9400; // flat bet multiplier when all 9 Zenith swords land at once
+const ZENITH_ASSEMBLE_MULT = 17500; // flat bet multiplier when all 9 Zenith swords land at once (2026-09-28: rescaled ~1.86x alongside ZENITH_SYMBOLS' mults)
 
 // Restored from state (not just defaulted to 0) so an in-progress bonus round, free-spin streak
 // or bottle buff survives a tab refresh instead of silently vanishing - saveState() below keeps
@@ -212,18 +212,27 @@ function renderBalance(instant){
 }
 let lastCoins={p:-1,g:-1,s:-1,c:-1};
 let toastTimer=null; // declared early: renderBalance()'s auto-convert check can call showToast() during page-load init
+function fitBalanceCoins(){
+  const row = document.getElementById("balanceCoins");
+  if(!row) return;
+  row.style.transform = "";
+  const avail = balanceBar.clientWidth, need = row.scrollWidth;
+  if(avail>0 && need>avail) row.style.transform = `scale(${Math.max(0.45, avail/need)})`;
+}
 function paintBalance(v){
   const {p,g,s,c}=toCoins(Math.max(0,v));
-  balanceBar.innerHTML = `
+  balanceBar.innerHTML = `<div class="coinrow" id="balanceCoins">
     <div class="coin" id="coinP"><img class="spr" src="${SPR.coin_platinum}" style="width:17px;height:20px">${p}</div>
     <div class="coin" id="coinG"><img class="spr" src="${SPR.coin_gold}" style="width:15px;height:20px">${g}</div>
     <div class="coin" id="coinS"><img class="spr" src="${SPR.coin_silver}" style="width:15px;height:17px">${s}</div>
     <div class="coin" id="coinC"><img class="spr" src="${SPR.coin_copper}" style="width:15px;height:15px">${c}</div>
-    <div class="coin" id="coinMedal" title="${state.lang==="en"?"Defender Medals":"防衛メダル"}"><img class="spr" src="${SPR.icon_defendermedal}" style="width:16px;height:16px">${state.defenderMedals||0}</div>`;
+    <div class="coin" id="coinMedal" title="${state.lang==="en"?"Defender Medals":"防衛メダル"}"><img class="spr" src="${SPR.icon_defendermedal}" style="width:16px;height:16px">${state.defenderMedals||0}</div>
+  </div>`;
   if(p>lastCoins.p) document.getElementById("coinP").classList.add("bump");
   if(g>lastCoins.g) document.getElementById("coinG").classList.add("bump");
   if(s>lastCoins.s) document.getElementById("coinS").classList.add("bump");
   lastCoins={p,g,s,c};
+  fitBalanceCoins();
 }
 function renderBet(){ const {p,g,s,c}=toCoins(currentBet()); let parts=[]; if(p) parts.push(p+"P"); if(g) parts.push(g+"G"); if(s) parts.push(s+"S"); if(c) parts.push(c+"C"); betAmt.textContent=parts.join(" ")||"0"; }
 function applyLang(){ document.body.classList.toggle("lang-en", state.lang==="en"); document.getElementById("langBtn").textContent = state.lang==="en"?"JA":"EN"; }
@@ -256,6 +265,7 @@ function syncSkyHeight(){
 }
 syncSkyHeight();
 window.addEventListener('resize', syncSkyHeight);
+window.addEventListener('resize', fitBalanceCoins);
 setTimeout(syncSkyHeight, 200);
 
 const DAYNIGHT_CYCLE_MS = 120000; // full day+night loop every 2 minutes
@@ -449,6 +459,10 @@ function tryUnlockTheme(themeId){
   }
   state.defenderMedals -= def.unlockCost;
   state.themeUnlocked[themeId] = true;
+  if(themeId==="slime") unlockAch("unlockSlime");
+  if(themeId==="zombie") unlockAch("unlockZombie");
+  if(themeId==="zenith") unlockAch("unlockZenith");
+  if(THEME_ORDER.every(id=>state.themeUnlocked[id])) unlockAch("allThemesUnlocked");
   saveState();
   renderBalance();
   showToast(state.lang==="en" ? `${def.nameEn} Slots unlocked!` : `${def.nameJa}スロットを解禁した!`);
@@ -477,6 +491,8 @@ function renderThemeGrid(){
     const prevLocked = prevId && !state.themeUnlocked[prevId];
     btn.classList.toggle("active", state.activeTheme===id);
     btn.classList.toggle("locked", !unlocked);
+    const costEl = btn.querySelector(".tcnum");
+    if(costEl) costEl.textContent = def.unlockCost; // was a hardcoded number in index.html - drifted out of sync with THEME_DEFS when Zenith's cost changed
     if(unlocked) btn.title = def.nameEn;
     else if(prevLocked) btn.title = `${def.nameEn} - unlock ${THEME_DEFS[prevId].nameEn} first`;
     else btn.title = `${def.nameEn} - ${def.unlockCost} Defender Medals to unlock`;
@@ -629,6 +645,57 @@ const ACHIEVEMENT_DEFS = [
   {key:"jackpotBig", ja:"大ジャックポット", en:"Big Jackpot"},
   {key:"moonClicker", ja:"月の秘密", en:"Moon's Secret", hidden:true, hintJa:"月を10回クリックする", hintEn:"Click the moon 10 times"},
   {key:"bunnyClicker", ja:"ウサギを捕まえた", en:"Caught the Bunny", hidden:true, hintJa:"歩いているウサギをクリックする", hintEn:"Click the wandering bunny"},
+  // 2026-09-28: 実績を50→100種に拡張(詳細はDEVLOG.md参照)
+  {key:"allSymbolsSlime", ja:"スライム図鑑コンプリート", en:"Slime Compendium"},
+  {key:"allSymbolsZombie", ja:"ゾンビ図鑑コンプリート", en:"Zombie Compendium"},
+  {key:"allSymbolsZenith", ja:"ゼニス図鑑コンプリート", en:"Zenith Compendium"},
+  {key:"firstWinSlime", ja:"はじめてのスライム討伐", en:"First Slime Slain"},
+  {key:"firstWinZombie", ja:"はじめてのゾンビ討伐", en:"First Zombie Slain"},
+  {key:"firstWinZenith", ja:"はじめての聖剣", en:"First Holy Blade"},
+  {key:"slimeKingFound", ja:"キングスライム討伐", en:"King Slime Slain"},
+  {key:"slimeQueenFound", ja:"クイーンスライム討伐", en:"Queen Slime Slain"},
+  {key:"slimeGoldenFound", ja:"黄金の輝き", en:"Golden Glimmer"},
+  {key:"zombieBrideFound", ja:"花嫁を見つけた", en:"Found the Bride"},
+  {key:"zombieGroomFound", ja:"花婿を見つけた", en:"Found the Groom"},
+  {key:"zombieDoctorBonesFound", ja:"ドクターボーンズ討伐", en:"Doctor Bones Down"},
+  {key:"zenithMeowmereFound", ja:"運命の一振り", en:"A Meow-velous Strike"},
+  {key:"zenithTerrabladeFound", ja:"テラブレード顕現", en:"Terra Blade Manifest"},
+  {key:"zenithHorsemanFound", ja:"首なし騎士の剣", en:"Headless Horseman's Blade"},
+  {key:"zenithAssemble1", ja:"ゼニス、完成!!", en:"Zenith, Assembled!!"},
+  {key:"zenithAssemble10", ja:"完成の匠", en:"Master Assembler"},
+  {key:"zenithAssemble50", ja:"伝説の鍛冶屋", en:"Legendary Blacksmith"},
+  {key:"unlockSlime", ja:"スライムスロット解禁", en:"Slime Slots Unlocked"},
+  {key:"unlockZombie", ja:"ゾンビスロット解禁", en:"Zombie Slots Unlocked"},
+  {key:"unlockZenith", ja:"ゼニススロット解禁", en:"Zenith Slots Unlocked"},
+  {key:"allThemesUnlocked", ja:"全テーマ制覇", en:"All Themes Unlocked"},
+  {key:"spins10000", ja:"回転の求道者", en:"Spin Seeker"},
+  {key:"spins25000", ja:"回転の権化", en:"Spin Incarnate"},
+  {key:"spins50000", ja:"回転の神", en:"Spin Deity"},
+  {key:"streak15", ja:"止まらない連勝", en:"Streak Unstoppable"},
+  {key:"streak20", ja:"神がかった連勝", en:"Divine Streak"},
+  {key:"megaWin300", ja:"驚異のウィン", en:"Astonishing Win"},
+  {key:"megaWin500", ja:"神話級ウィン", en:"Mythical Win"},
+  {key:"megaWin1000", ja:"宇宙級ウィン", en:"Cosmic Win"},
+  {key:"digMaster500", ja:"発掘の伝説", en:"Excavation Legend"},
+  {key:"digMaster1000", ja:"発掘神", en:"Excavation Deity"},
+  {key:"balance500P", ja:"超富豪", en:"Ultra Wealthy"},
+  {key:"balance1000P", ja:"億万長者", en:"Billionaire"},
+  {key:"jackpotStreak5", ja:"ポットの寵児", en:"Pot's Favorite"},
+  {key:"jackpotStreak10", ja:"ポットの支配者", en:"Pot Overlord"},
+  {key:"kakuhenVeteran25", ja:"確変の化身", en:"Bonus Incarnate"},
+  {key:"kakuhenVeteran50", ja:"確変の神", en:"Bonus Deity"},
+  {key:"bottleAddict25", ja:"ポーション中毒者", en:"Potion Addict"},
+  {key:"bottleHoarder10", ja:"瓶の収集家", en:"Bottle Hoarder Elite"},
+  {key:"freeSpinFan50", ja:"フリースピンの申し子", en:"Free Spin Prodigy"},
+  {key:"allThemesWin", ja:"全テーマ制覇者", en:"Master of All Themes"},
+  {key:"shopComplete", ja:"旅商人の上得意", en:"Merchant's Best Customer"},
+  {key:"betAllLevels", ja:"全ベット段階制覇", en:"Every Bet Level"},
+  {key:"treeClicker", ja:"木の妖精", en:"Tree Spirit", hidden:true, hintJa:"木を5回クリックする", hintEn:"Click the tree 5 times"},
+  {key:"mushroomClicker", ja:"キノコの妖精", en:"Mushroom Spirit", hidden:true, hintJa:"キノコを5回クリックする", hintEn:"Click the mushroom 5 times"},
+  {key:"achievementHunter", ja:"実績ハンター", en:"Achievement Hunter"},
+  {key:"ghostHunter100", ja:"幽霊退治マスター", en:"Ghost Hunt Master"},
+  {key:"ghostHunter250", ja:"幽霊祓いの賢者", en:"Ghost Hunt Sage"},
+  {key:"mysteryPotMax", ja:"大当たりの神", en:"Jackpot Deity"},
 ];
 const ACH_PAGE_SIZE = 10;
 let achPage = 0;
@@ -682,10 +749,18 @@ document.addEventListener("click",(e)=>{
 document.getElementById("infoBtn").onclick=()=>{ document.getElementById("infoModal").classList.add("show"); };
 document.getElementById("infoClose").onclick=()=>{ document.getElementById("infoModal").classList.remove("show"); };
 document.getElementById("infoModal").onclick=(e)=>{ if(e.target.id==="infoModal") e.currentTarget.classList.remove("show"); };
-document.getElementById("decoMushroom").onclick=()=>{ document.getElementById("devlogModal").classList.add("show"); };
+document.getElementById("decoMushroom").onclick=()=>{
+  document.getElementById("devlogModal").classList.add("show");
+  state.mushroomClicks=(state.mushroomClicks||0)+1;
+  if(state.mushroomClicks>=5) unlockAch("mushroomClicker"); else saveState();
+};
 document.getElementById("devlogClose").onclick=()=>{ document.getElementById("devlogModal").classList.remove("show"); };
 document.getElementById("devlogModal").onclick=(e)=>{ if(e.target.id==="devlogModal") e.currentTarget.classList.remove("show"); };
-document.getElementById("decoTree").onclick=()=>{ document.getElementById("changelogModal").classList.add("show"); };
+document.getElementById("decoTree").onclick=()=>{
+  document.getElementById("changelogModal").classList.add("show");
+  state.treeClicks=(state.treeClicks||0)+1;
+  if(state.treeClicks>=5) unlockAch("treeClicker"); else saveState();
+};
 document.getElementById("changelogClose").onclick=()=>{ document.getElementById("changelogModal").classList.remove("show"); };
 document.getElementById("changelogModal").onclick=(e)=>{ if(e.target.id==="changelogModal") e.currentTarget.classList.remove("show"); };
 
@@ -1013,6 +1088,54 @@ function checkAchievements(wins, totalPayout, payoutRatio, jackpotWin){
   if((state.symbolWinCounts.ice||0)>=50) unlockAch("iceMaster");
   if(jackpotWin!=null){ state.biggestJackpot = Math.max(state.biggestJackpot||0, jackpotWin); }
   if((state.biggestJackpot||0)>=PLATINUM) unlockAch("jackpotBig");
+  // 2026-09-28: 実績を50→100種に拡張(スロット4テーマ分の絵柄図鑑・レア絵柄・テーマ解禁・
+  // 既存カテゴリの上位ランク等)。詳細はDEVLOG.md参照。
+  if(SLIME_SYMBOLS.every(s=>state.symbolsWon[s.id])) unlockAch("allSymbolsSlime");
+  if(ZOMBIE_SYMBOLS.every(s=>state.symbolsWon[s.id])) unlockAch("allSymbolsZombie");
+  if(ZENITH_SYMBOLS.every(s=>state.symbolsWon[s.id])) unlockAch("allSymbolsZenith");
+  if(state.activeTheme==="slime" && wins.length>0) unlockAch("firstWinSlime");
+  if(state.activeTheme==="zombie" && wins.length>0) unlockAch("firstWinZombie");
+  if(state.activeTheme==="zenith" && wins.length>0) unlockAch("firstWinZenith");
+  if(state.symbolsWon.slime_king) unlockAch("slimeKingFound");
+  if(state.symbolsWon.slime_queen) unlockAch("slimeQueenFound");
+  if(state.symbolsWon.slime_golden) unlockAch("slimeGoldenFound");
+  if(state.symbolsWon.zombie_bride) unlockAch("zombieBrideFound");
+  if(state.symbolsWon.zombie_groom) unlockAch("zombieGroomFound");
+  if(state.symbolsWon.zombie_doctorbones) unlockAch("zombieDoctorBonesFound");
+  if(state.symbolsWon.zenith_meowmere) unlockAch("zenithMeowmereFound");
+  if(state.symbolsWon.zenith_terrablade) unlockAch("zenithTerrabladeFound");
+  if(state.symbolsWon.zenith_horseman) unlockAch("zenithHorsemanFound");
+  if((state.zenithAssembles||0)>=1) unlockAch("zenithAssemble1");
+  if((state.zenithAssembles||0)>=10) unlockAch("zenithAssemble10");
+  if((state.zenithAssembles||0)>=50) unlockAch("zenithAssemble50");
+  if((state.totalSpins||0)>=10000) unlockAch("spins10000");
+  if((state.totalSpins||0)>=25000) unlockAch("spins25000");
+  if((state.totalSpins||0)>=50000) unlockAch("spins50000");
+  if(state.streak>=15) unlockAch("streak15");
+  if(state.streak>=20) unlockAch("streak20");
+  if(payoutRatio>=300) unlockAch("megaWin300");
+  if(payoutRatio>=500) unlockAch("megaWin500");
+  if(payoutRatio>=1000) unlockAch("megaWin1000");
+  if((state.totalDigs||0)>=500) unlockAch("digMaster500");
+  if((state.totalDigs||0)>=1000) unlockAch("digMaster1000");
+  if(state.balance>=500*PLATINUM) unlockAch("balance500P");
+  if(state.balance>=1000*PLATINUM) unlockAch("balance1000P");
+  if((state.jackpotWins||0)>=5) unlockAch("jackpotStreak5");
+  if((state.jackpotWins||0)>=10) unlockAch("jackpotStreak10");
+  if((state.kakuhenTriggers||0)>=25) unlockAch("kakuhenVeteran25");
+  if((state.kakuhenTriggers||0)>=50) unlockAch("kakuhenVeteran50");
+  if((state.bottleUsedCount||0)>=25) unlockAch("bottleAddict25");
+  if(((state.bottles||0)+(state.superBottles||0))>=10) unlockAch("bottleHoarder10");
+  if((state.freeSpinTriggers||0)>=50) unlockAch("freeSpinFan50");
+  if(MIMIC_SYMBOLS.some(s=>state.symbolsWon[s.id]) && SLIME_SYMBOLS.some(s=>state.symbolsWon[s.id])
+    && ZOMBIE_SYMBOLS.some(s=>state.symbolsWon[s.id]) && ZENITH_SYMBOLS.some(s=>state.symbolsWon[s.id])) unlockAch("allThemesWin");
+  if(state.autoSpinForceUnlocked && state.turboUnlocked && state.digGhostFastCooldown
+    && state.mimicPetOwned && state.luckyCoinOwned && state.achGuideOwned) unlockAch("shopComplete");
+  if(Object.keys(state.betLevelsUsed||{}).length>=BET_STEPS.length) unlockAch("betAllLevels");
+  if((state.totalGhosts||0)>=100) unlockAch("ghostHunter100");
+  if((state.totalGhosts||0)>=250) unlockAch("ghostHunter250");
+  if((state.biggestJackpot||0)>=10*PLATINUM) unlockAch("mysteryPotMax");
+  if(Object.keys(state.achievements||{}).length>=50) unlockAch("achievementHunter");
   saveState();
 }
 let spinning=false;
@@ -1042,6 +1165,8 @@ async function spin(){
     freeSpinsRemaining -= 1; updateFreeSpinBadge();
   } else {
     state.balance-=bet; renderBalance(); lastRealBet=bet;
+    if(!state.betLevelsUsed) state.betLevelsUsed={};
+    state.betLevelsUsed[betIndex]=true;
     const feedRate = state.luckyCoinOwned ? JACKPOT_FEED_RATE_LUCKY : JACKPOT_FEED_RATE;
     state.jackpotPool += Math.max(1, Math.floor(bet*feedRate)); renderJackpot();
   }

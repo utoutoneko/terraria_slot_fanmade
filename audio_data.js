@@ -206,24 +206,26 @@ const SLIME_SYMBOLS = [
 // theme, but landing all 9 different swords across the 9 cells at once (impossible to also be
 // a line-match, since no 3 cells can share a symbol) triggers a separate "Zenith Assembled"
 // mega-jackpot - see isZenithAssembled().
+// 2026-09-28: 倍率を全体的に約1.86倍に再スケール(モンテカルロ600万スピンで較正)。
+// 解禁コストを50→200枚に引き上げたのに合わせ、実測RTPを約1076%→約2000%まで押し上げる方針。
 const ZENITH_SYMBOLS = [
-  { id:"zenith_enchanted", nameJa:"エンチャンテッドソード", nameEn:"Enchanted Sword", weight:24, mult:19, tier:1, fx:"coin",
+  { id:"zenith_enchanted", nameJa:"エンチャンテッドソード", nameEn:"Enchanted Sword", weight:24, mult:35, tier:1, fx:"coin",
     chestVariants:["zenith_enchanted"], revealVariants:["zenith_enchanted"] },
-  { id:"zenith_starfury", nameJa:"スターフューリー", nameEn:"Starfury", weight:18, mult:37, tier:2, fx:"frost",
+  { id:"zenith_starfury", nameJa:"スターフューリー", nameEn:"Starfury", weight:18, mult:69, tier:2, fx:"frost",
     chestVariants:["zenith_starfury"], revealVariants:["zenith_starfury"] },
-  { id:"zenith_starwrath", nameJa:"スターラース", nameEn:"Star Wrath", weight:13, mult:62, tier:3, fx:"corrupt",
+  { id:"zenith_starwrath", nameJa:"スターラース", nameEn:"Star Wrath", weight:13, mult:115, tier:3, fx:"corrupt",
     chestVariants:["zenith_starwrath"], revealVariants:["zenith_starwrath"] },
-  { id:"zenith_seedler", nameJa:"シードラー", nameEn:"Seedler", weight:13, mult:62, tier:3, fx:"crimson",
+  { id:"zenith_seedler", nameJa:"シードラー", nameEn:"Seedler", weight:13, mult:115, tier:3, fx:"crimson",
     chestVariants:["zenith_seedler"], revealVariants:["zenith_seedler"] },
-  { id:"zenith_influx", nameJa:"インフラックスウェイバー", nameEn:"Influx Waver", weight:13, mult:69, tier:3, fx:"hallow",
+  { id:"zenith_influx", nameJa:"インフラックスウェイバー", nameEn:"Influx Waver", weight:13, mult:128, tier:3, fx:"hallow",
     chestVariants:["zenith_influx"], revealVariants:["zenith_influx"] },
-  { id:"zenith_beekeeper", nameJa:"ビーキーパー", nameEn:"Bee Keeper", weight:13, mult:69, tier:3, fx:"hallow",
+  { id:"zenith_beekeeper", nameJa:"ビーキーパー", nameEn:"Bee Keeper", weight:13, mult:128, tier:3, fx:"hallow",
     chestVariants:["zenith_beekeeper"], revealVariants:["zenith_beekeeper"] },
-  { id:"zenith_horseman", nameJa:"ホースマンズブレード", nameEn:"The Horseman's Blade", weight:10, mult:125, tier:4, fx:"jungle",
+  { id:"zenith_horseman", nameJa:"ホースマンズブレード", nameEn:"The Horseman's Blade", weight:10, mult:233, tier:4, fx:"jungle",
     chestVariants:["zenith_horseman"], revealVariants:["zenith_horseman"] },
-  { id:"zenith_meowmere", nameJa:"ニャウメア", nameEn:"Meowmere", weight:4, mult:937, tier:5, fx:"jackpot",
+  { id:"zenith_meowmere", nameJa:"ニャウメア", nameEn:"Meowmere", weight:4, mult:1743, tier:5, fx:"jackpot",
     chestVariants:["zenith_meowmere"], revealVariants:["zenith_meowmere"] },
-  { id:"zenith_terrablade", nameJa:"テラブレード", nameEn:"Terra Blade", weight:4, mult:937, tier:5, fx:"jackpot",
+  { id:"zenith_terrablade", nameJa:"テラブレード", nameEn:"Terra Blade", weight:4, mult:1743, tier:5, fx:"jackpot",
     chestVariants:["zenith_terrablade"], revealVariants:["zenith_terrablade"] },
 ];
 // 解禁は一直線の順番(mimic→slime→zombie→zenith)。後のテーマほど還元率もドーパミンも
@@ -232,7 +234,7 @@ const THEME_DEFS = {
   mimic:  { nameJa:"ミミック", nameEn:"Mimic",  symbols:MIMIC_SYMBOLS,  scatterId:"present",         unlockCost:0,  iconKey:"mimic_gold" },
   slime:  { nameJa:"スライム", nameEn:"Slime",  symbols:SLIME_SYMBOLS,  scatterId:"slime_golden",     unlockCost:5,  iconKey:"icon_theme_slime" },
   zombie: { nameJa:"ゾンビ",   nameEn:"Zombie", symbols:ZOMBIE_SYMBOLS, scatterId:"zombie_bride",     unlockCost:20, iconKey:"icon_theme_zombie" },
-  zenith: { nameJa:"ゼニス",   nameEn:"Zenith", symbols:ZENITH_SYMBOLS, scatterId:"zenith_meowmere",  unlockCost:50, iconKey:"icon_theme_zenith" },
+  zenith: { nameJa:"ゼニス",   nameEn:"Zenith", symbols:ZENITH_SYMBOLS, scatterId:"zenith_meowmere",  unlockCost:200, iconKey:"icon_theme_zenith" },
 };
 const THEME_ORDER = ["mimic","slime","zombie","zenith"];
 let SYMBOLS = MIMIC_SYMBOLS;
@@ -278,7 +280,7 @@ function formatCoins(v){
 }
 
 const SAVE_KEY = "mimicslot_terrariajp_save_v3";
-const DEFAULT_STATE = { balance: 10*GOLD, lang:"ja", sound:true, digCooldownUntil:0, ghostCooldownUntil:0, achievements:{}, jackpotPool: 5000, streak:0, bottles:0, totalSpins:0, symbolsWon:{}, starFragments:0, mana:0, totalDigs:0, freeSpinTriggers:0, jackpotWins:0, manaUsed:0, pityCount:0, kakuhenTriggers:0, symbolWinCounts:{}, bottleUsedCount:0, biggestJackpot:0, moonClicks:0, totalGhosts:0, defenderMedals:0, betIndex:3, activeTheme:"mimic", themeUnlocked:{mimic:true}, zenithAssembles:0, superBottles:0, turboUnlocked:false, autoSpinForceUnlocked:false, freeSpinsRemaining:0, bottleBuffRemaining:0, bottleBuffMult:2, kakuhenRemaining:0, manaPurifyNextSpin:false, lastRealBet:0, themeBtnUnlocked:false, turboEnabled:true, digGhostFastCooldown:false, mimicPetOwned:false, mimicPetOn:true, luckyCoinOwned:false, achGuideOwned:false };
+const DEFAULT_STATE = { balance: 10*GOLD, lang:"ja", sound:true, digCooldownUntil:0, ghostCooldownUntil:0, achievements:{}, jackpotPool: 5000, streak:0, bottles:0, totalSpins:0, symbolsWon:{}, starFragments:0, mana:0, totalDigs:0, freeSpinTriggers:0, jackpotWins:0, manaUsed:0, pityCount:0, kakuhenTriggers:0, symbolWinCounts:{}, bottleUsedCount:0, biggestJackpot:0, moonClicks:0, totalGhosts:0, defenderMedals:0, betIndex:3, activeTheme:"mimic", themeUnlocked:{mimic:true}, zenithAssembles:0, superBottles:0, turboUnlocked:false, autoSpinForceUnlocked:false, freeSpinsRemaining:0, bottleBuffRemaining:0, bottleBuffMult:2, kakuhenRemaining:0, manaPurifyNextSpin:false, lastRealBet:0, themeBtnUnlocked:false, turboEnabled:true, digGhostFastCooldown:false, mimicPetOwned:false, mimicPetOn:true, luckyCoinOwned:false, achGuideOwned:false, betLevelsUsed:{}, treeClicks:0, mushroomClicks:0 };
 let state = loadState();
 function loadState(){ try{ const raw=localStorage.getItem(SAVE_KEY); if(!raw) return {...DEFAULT_STATE}; return {...DEFAULT_STATE, ...JSON.parse(raw)}; }catch(e){ return {...DEFAULT_STATE}; } }
 function saveState(){
