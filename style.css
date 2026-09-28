@@ -114,8 +114,6 @@ img.spr{image-rendering:pixelated;image-rendering:crisp-edges;-webkit-user-drag:
 .deco-torch{position:absolute;width:20px;height:auto;image-rendering:pixelated;z-index:6;filter:drop-shadow(0 0 4px rgba(255,177,78,.6));}
 .deco-torch.tl{top:-4px;left:6px;}
 .deco-torch.tr{top:-4px;right:6px;}
-.deco-chandelier{position:absolute;top:-18px;left:50%;transform:translateX(-50%);width:44px;height:auto;image-rendering:pixelated;z-index:6;animation:chandelierSway 4s ease-in-out infinite;transform-origin:top center;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5));}
-@keyframes chandelierSway{0%,100%{transform:translateX(-50%) rotate(-2deg);}50%{transform:translateX(-50%) rotate(2deg);}}
 .deco-bottle{position:absolute;bottom:4px;right:6px;width:16px;height:auto;image-rendering:pixelated;z-index:3;opacity:.9;}
 .guideheader{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #3a3658;}
 .guideheader img{image-rendering:pixelated;}

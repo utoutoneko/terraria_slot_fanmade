@@ -179,6 +179,7 @@ function updateHudStrip(){
 let displayedBalance=state.balance;
 let balanceAnimGen=0;
 const MEDAL_RATE = 1000*PLATINUM, PLATINUM_KEEP_ON_CONVERT = 1000*PLATINUM, PLATINUM_AUTOCONVERT_AT = 10000*PLATINUM;
+const MEDAL_CAP = 9999; // Terraria caps most stackable items (Defender Medals included) at 9999 per stack
 function checkPlatinumAutoConvert(){
   // Terraria caps each coin denomination at 9999, so a platinum count can't realistically climb
   // forever. Once balance would hit 10,000 platinum, auto-convert everything above a 1,000
@@ -187,10 +188,23 @@ function checkPlatinumAutoConvert(){
   if(state.balance < PLATINUM_AUTOCONVERT_AT) return;
   if(!state.themeBtnUnlocked){ state.themeBtnUnlocked = true; updateThemeBtnVisibility(); }
   const convertible = state.balance - PLATINUM_KEEP_ON_CONVERT;
-  const medals = Math.floor(convertible/MEDAL_RATE);
-  if(medals<=0) return;
+  const wanted = Math.floor(convertible/MEDAL_RATE);
+  if(wanted<=0) return;
+  // Defender Medals are a real Terraria item and stack-cap at 9999 like most stackable items;
+  // once full, the excess platinum is simply left unconverted (coins themselves have no such
+  // cap in Terraria, only items do) rather than silently discarded or overflowing the count.
+  const room = MEDAL_CAP - (state.defenderMedals||0);
+  const medals = Math.min(wanted, Math.max(0, room));
+  if(medals<=0){
+    if(!state.medalCapToastShown){
+      state.medalCapToastShown = true; saveState();
+      showToast(state.lang==="en" ? "Defender Medals are stacked to the 9999 cap - spend some to convert more coins!" : "防衛メダルが上限の9999枚に達しています。使ってから変換してください");
+    }
+    return;
+  }
   state.balance -= medals*MEDAL_RATE;
   state.defenderMedals = (state.defenderMedals||0)+medals;
+  state.medalCapToastShown = false;
   saveState();
   showToast(state.lang==="en" ? `Coins capped out - converted to +${medals} Defender Medal${medals>1?"s":""}!` : `所持金が上限に達し、防衛メダル+${medals}枚に変換されました!`);
 }
@@ -595,107 +609,106 @@ document.getElementById("digToggle").onclick=()=>{ document.getElementById("digM
 document.getElementById("digClose").onclick=()=>{ document.getElementById("digModal").classList.remove("show"); };
 document.getElementById("digModal").onclick=(e)=>{ if(e.target.id==="digModal") e.currentTarget.classList.remove("show"); };
 const ACHIEVEMENT_DEFS = [
-  {key:"firstWin", ja:"はじめてのミミック捕獲", en:"First Catch"},
-  {key:"jackpot", ja:"プレゼントを見つけた", en:"Jackpot Hunter"},
-  {key:"multiline", ja:"マルチライン職人", en:"Multi-Line Master"},
-  {key:"richPlayer", ja:"白金貨の袋", en:"Platinum Pouch"},
-  {key:"jungle", ja:"ジャングルの奥へ", en:"Into the Jungle"},
-  {key:"allSymbols", ja:"ミミック図鑑コンプリート", en:"Mimic Compendium"},
-  {key:"spins100", ja:"百戦錬磨", en:"Seasoned Spinner"},
-  {key:"streak5", ja:"不屈の連勝", en:"Unstoppable Streak"},
-  {key:"megaWin", ja:"メガウィン達成", en:"Mega Winner"},
-  {key:"bottleUsed", ja:"ラッキードリンカー", en:"Lucky Drinker"},
-  {key:"digMaster", ja:"発掘マスター", en:"Dig Master"},
-  {key:"bonusHunter", ja:"ボーナスハンター", en:"Bonus Hunter"},
-  {key:"mysteryRich", ja:"ミステリー成金", en:"Mystery Fortune"},
-  {key:"starMage", ja:"星屑の魔術師", en:"Star Mage"},
-  {key:"megaRich", ja:"大富豪", en:"Tycoon"},
-  {key:"hallowFound", ja:"聖なる輝き", en:"Blessed Find"},
-  {key:"evilTwins", ja:"邪悪な双子", en:"Evil Twins"},
-  {key:"spins500", ja:"スロット古参兵", en:"Slot Veteran"},
-  {key:"doubleTrouble", ja:"ダブルトラブル", en:"Double Trouble"},
-  {key:"spins25", ja:"駆け出しスロッター", en:"Rookie Spinner"},
-  {key:"spins1000", ja:"千戦錬磨", en:"Slot Legend"},
-  {key:"spins2500", ja:"スロットの鬼", en:"Slot Fanatic"},
-  {key:"spins5000", ja:"伝説のスロッター", en:"Slot Icon"},
-  {key:"streak8", ja:"無敵の連勝", en:"Untouchable Streak"},
-  {key:"streak11", ja:"運命の連鎖", en:"Chain of Fate"},
-  {key:"megaWin200", ja:"超メガウィン", en:"Ultra Mega Win"},
-  {key:"digMaster100", ja:"発掘の鬼", en:"Excavation Fanatic"},
-  {key:"digMaster250", ja:"発掘王", en:"Excavation King"},
-  {key:"manaMaster", ja:"星屑マスター", en:"Star Master"},
-  {key:"jackpotStreak3", ja:"ジャックポット常連", en:"Jackpot Regular"},
-  {key:"freeSpinFan", ja:"フリースピン中毒", en:"Free Spin Addict"},
-  {key:"kakuhenFirst", ja:"初めての確変", en:"First Bonus Round"},
-  {key:"kakuhenVeteran", ja:"確変ハンター", en:"Bonus Hunter Elite"},
-  {key:"kakuhenPity", ja:"天井到達", en:"Reached the Pity Timer"},
-  {key:"iceFound", ja:"氷結の証", en:"Frozen Proof"},
-  {key:"corruptFound", ja:"腐敗の証", en:"Corruption's Mark"},
-  {key:"crimsonFound", ja:"緋色の証", en:"Crimson Mark"},
-  {key:"allBiomes", ja:"四大厄災制覇", en:"Master of Biomes"},
-  {key:"pentaLine", ja:"ペンタライン", en:"Penta Line"},
-  {key:"perfectBoard", ja:"全ライン制覇", en:"Perfect Board"},
-  {key:"balanceUltra", ja:"伝説の資産家", en:"Legendary Fortune"},
-  {key:"bigBet", ja:"大勝負", en:"High Roller"},
-  {key:"smallBet", ja:"堅実プレイ", en:"Playing It Safe"},
-  {key:"bottleHoarder", ja:"瓶コレクター", en:"Bottle Collector"},
-  {key:"bottleAddict", ja:"リキッドラック中毒", en:"Liquid Luck Addict"},
-  {key:"mimicMaster", ja:"ミミック狩りの達人", en:"Mimic Slayer"},
-  {key:"iceMaster", ja:"氷の探求者", en:"Ice Seeker"},
-  {key:"jackpotBig", ja:"大ジャックポット", en:"Big Jackpot"},
-  {key:"moonClicker", ja:"月の秘密", en:"Moon's Secret", hidden:true, hintJa:"月を10回クリックする", hintEn:"Click the moon 10 times"},
-  {key:"bunnyClicker", ja:"ウサギを捕まえた", en:"Caught the Bunny", hidden:true, hintJa:"歩いているウサギをクリックする", hintEn:"Click the wandering bunny"},
-  // 2026-09-28: 実績を50→100種に拡張(詳細はDEVLOG.md参照)
-  {key:"allSymbolsSlime", ja:"スライム図鑑コンプリート", en:"Slime Compendium"},
-  {key:"allSymbolsZombie", ja:"ゾンビ図鑑コンプリート", en:"Zombie Compendium"},
-  {key:"allSymbolsZenith", ja:"ゼニス図鑑コンプリート", en:"Zenith Compendium"},
-  {key:"firstWinSlime", ja:"はじめてのスライム討伐", en:"First Slime Slain"},
-  {key:"firstWinZombie", ja:"はじめてのゾンビ討伐", en:"First Zombie Slain"},
-  {key:"firstWinZenith", ja:"はじめての聖剣", en:"First Holy Blade"},
-  {key:"slimeKingFound", ja:"キングスライム討伐", en:"King Slime Slain"},
-  {key:"slimeQueenFound", ja:"クイーンスライム討伐", en:"Queen Slime Slain"},
-  {key:"slimeGoldenFound", ja:"黄金の輝き", en:"Golden Glimmer"},
-  {key:"zombieBrideFound", ja:"花嫁を見つけた", en:"Found the Bride"},
-  {key:"zombieGroomFound", ja:"花婿を見つけた", en:"Found the Groom"},
-  {key:"zombieDoctorBonesFound", ja:"ドクターボーンズ討伐", en:"Doctor Bones Down"},
-  {key:"zenithMeowmereFound", ja:"運命の一振り", en:"A Meow-velous Strike"},
-  {key:"zenithTerrabladeFound", ja:"テラブレード顕現", en:"Terra Blade Manifest"},
-  {key:"zenithHorsemanFound", ja:"首なし騎士の剣", en:"Headless Horseman's Blade"},
-  {key:"zenithAssemble1", ja:"ゼニス、完成!!", en:"Zenith, Assembled!!"},
-  {key:"zenithAssemble10", ja:"完成の匠", en:"Master Assembler"},
-  {key:"zenithAssemble50", ja:"伝説の鍛冶屋", en:"Legendary Blacksmith"},
-  {key:"unlockSlime", ja:"スライムスロット解禁", en:"Slime Slots Unlocked"},
-  {key:"unlockZombie", ja:"ゾンビスロット解禁", en:"Zombie Slots Unlocked"},
-  {key:"unlockZenith", ja:"ゼニススロット解禁", en:"Zenith Slots Unlocked"},
-  {key:"allThemesUnlocked", ja:"全テーマ制覇", en:"All Themes Unlocked"},
-  {key:"spins10000", ja:"回転の求道者", en:"Spin Seeker"},
-  {key:"spins25000", ja:"回転の権化", en:"Spin Incarnate"},
-  {key:"spins50000", ja:"回転の神", en:"Spin Deity"},
-  {key:"streak15", ja:"止まらない連勝", en:"Streak Unstoppable"},
-  {key:"streak20", ja:"神がかった連勝", en:"Divine Streak"},
-  {key:"megaWin300", ja:"驚異のウィン", en:"Astonishing Win"},
-  {key:"megaWin500", ja:"神話級ウィン", en:"Mythical Win"},
-  {key:"megaWin1000", ja:"宇宙級ウィン", en:"Cosmic Win"},
-  {key:"digMaster500", ja:"発掘の伝説", en:"Excavation Legend"},
-  {key:"digMaster1000", ja:"発掘神", en:"Excavation Deity"},
-  {key:"balance500P", ja:"超富豪", en:"Ultra Wealthy"},
-  {key:"balance1000P", ja:"億万長者", en:"Billionaire"},
-  {key:"jackpotStreak5", ja:"ポットの寵児", en:"Pot's Favorite"},
-  {key:"jackpotStreak10", ja:"ポットの支配者", en:"Pot Overlord"},
-  {key:"kakuhenVeteran25", ja:"確変の化身", en:"Bonus Incarnate"},
-  {key:"kakuhenVeteran50", ja:"確変の神", en:"Bonus Deity"},
-  {key:"bottleAddict25", ja:"ポーション中毒者", en:"Potion Addict"},
-  {key:"bottleHoarder10", ja:"瓶の収集家", en:"Bottle Hoarder Elite"},
-  {key:"freeSpinFan50", ja:"フリースピンの申し子", en:"Free Spin Prodigy"},
-  {key:"allThemesWin", ja:"全テーマ制覇者", en:"Master of All Themes"},
-  {key:"shopComplete", ja:"旅商人の上得意", en:"Merchant's Best Customer"},
-  {key:"betAllLevels", ja:"全ベット段階制覇", en:"Every Bet Level"},
-  {key:"treeClicker", ja:"木の妖精", en:"Tree Spirit", hidden:true, hintJa:"木を5回クリックする", hintEn:"Click the tree 5 times"},
-  {key:"mushroomClicker", ja:"キノコの妖精", en:"Mushroom Spirit", hidden:true, hintJa:"キノコを5回クリックする", hintEn:"Click the mushroom 5 times"},
-  {key:"achievementHunter", ja:"実績ハンター", en:"Achievement Hunter"},
-  {key:"ghostHunter100", ja:"幽霊退治マスター", en:"Ghost Hunt Master"},
-  {key:"ghostHunter250", ja:"幽霊祓いの賢者", en:"Ghost Hunt Sage"},
-  {key:"mysteryPotMax", ja:"大当たりの神", en:"Jackpot Deity"},
+  {key:"firstWin", ja:"はじめてのミミック捕獲", en:"First Catch", condJa:"初めて絵柄を3つ揃えて勝利する"},
+  {key:"jackpot", ja:"プレゼントを見つけた", en:"Jackpot Hunter", condJa:"プレゼントミミック(ミミックテーマのジャックポット絵柄)を揃える"},
+  {key:"multiline", ja:"マルチライン職人", en:"Multi-Line Master", condJa:"1スピンで3ライン以上同時に当てる"},
+  {key:"richPlayer", ja:"白金貨の袋", en:"Platinum Pouch", condJa:"所持金が白金貨1枚(1,000,000)以上になる"},
+  {key:"jungle", ja:"ジャングルの奥へ", en:"Into the Jungle", condJa:"ジャングルミミックを揃える"},
+  {key:"allSymbols", ja:"ミミック図鑑コンプリート", en:"Mimic Compendium", condJa:"ミミックテーマの7種類全部を1回以上揃える"},
+  {key:"spins100", ja:"百戦錬磨", en:"Seasoned Spinner", condJa:"通算100回スピンする"},
+  {key:"streak5", ja:"不屈の連勝", en:"Unstoppable Streak", condJa:"連勝ストリークを5まで伸ばす"},
+  {key:"megaWin", ja:"メガウィン達成", en:"Mega Winner", condJa:"1回の配当がベット額の100倍以上になる"},
+  {key:"bottleUsed", ja:"ラッキードリンカー", en:"Lucky Drinker", condJa:"瓶(ラッキーポーション)を初めて使う"},
+  {key:"digMaster", ja:"発掘マスター", en:"Dig Master", condJa:"通算50回発掘する"},
+  {key:"bonusHunter", ja:"ボーナスハンター", en:"Bonus Hunter", condJa:"フリースピンを通算5回発動させる"},
+  {key:"mysteryRich", ja:"ミステリー成金", en:"Mystery Fortune", condJa:"ミステリーポットに初めて当選する"},
+  {key:"starMage", ja:"星屑の魔術師", en:"Star Mage", condJa:"マナを初めて使う"},
+  {key:"megaRich", ja:"大富豪", en:"Tycoon", condJa:"所持金が白金貨10枚以上になる"},
+  {key:"hallowFound", ja:"聖なる輝き", en:"Blessed Find", condJa:"ハロウミミックを揃える"},
+  {key:"evilTwins", ja:"邪悪な双子", en:"Evil Twins", condJa:"コラプトミミックとクリムゾンミミックの両方を揃える"},
+  {key:"spins500", ja:"スロット古参兵", en:"Slot Veteran", condJa:"通算500回スピンする"},
+  {key:"doubleTrouble", ja:"ダブルトラブル", en:"Double Trouble", condJa:"1スピンでちょうど2ライン同時に当てる"},
+  {key:"spins25", ja:"駆け出しスロッター", en:"Rookie Spinner", condJa:"通算25回スピンする"},
+  {key:"spins1000", ja:"千戦錬磨", en:"Slot Legend", condJa:"通算1000回スピンする"},
+  {key:"spins2500", ja:"スロットの鬼", en:"Slot Fanatic", condJa:"通算2500回スピンする"},
+  {key:"spins5000", ja:"伝説のスロッター", en:"Slot Icon", condJa:"通算5000回スピンする"},
+  {key:"streak8", ja:"無敵の連勝", en:"Untouchable Streak", condJa:"連勝ストリークを8まで伸ばす"},
+  {key:"streak11", ja:"運命の連鎖", en:"Chain of Fate", condJa:"連勝ストリークを11まで伸ばす"},
+  {key:"megaWin200", ja:"超メガウィン", en:"Ultra Mega Win", condJa:"1回の配当がベット額の200倍以上になる"},
+  {key:"digMaster100", ja:"発掘の鬼", en:"Excavation Fanatic", condJa:"通算100回発掘する"},
+  {key:"digMaster250", ja:"発掘王", en:"Excavation King", condJa:"通算250回発掘する"},
+  {key:"manaMaster", ja:"星屑マスター", en:"Star Master", condJa:"マナを通算10回使う"},
+  {key:"jackpotStreak3", ja:"ジャックポット常連", en:"Jackpot Regular", condJa:"ミステリーポットに通算3回当選する"},
+  {key:"freeSpinFan", ja:"フリースピン中毒", en:"Free Spin Addict", condJa:"フリースピンを通算20回発動させる"},
+  {key:"kakuhenFirst", ja:"初めての確変", en:"First Bonus Round", condJa:"確変(ボーナスモード)を初めて発動させる"},
+  {key:"kakuhenVeteran", ja:"確変ハンター", en:"Bonus Hunter Elite", condJa:"確変を通算10回発動させる"},
+  {key:"kakuhenPity", ja:"天井到達", en:"Reached the Pity Timer", condJa:"天井(100回転ノーボーナス)で確変を強制発動させる"},
+  {key:"iceFound", ja:"氷結の証", en:"Frozen Proof", condJa:"アイスミミックを揃える"},
+  {key:"corruptFound", ja:"腐敗の証", en:"Corruption's Mark", condJa:"コラプトミミックを揃える"},
+  {key:"crimsonFound", ja:"緋色の証", en:"Crimson Mark", condJa:"クリムゾンミミックを揃える"},
+  {key:"allBiomes", ja:"四大厄災制覇", en:"Master of Biomes", condJa:"コラプト/クリムゾン/ハロウ/ジャングルミミックを全部揃える"},
+  {key:"pentaLine", ja:"ペンタライン", en:"Penta Line", condJa:"1スピンで5ライン以上同時に当てる"},
+  {key:"perfectBoard", ja:"全ライン制覇", en:"Perfect Board", condJa:"1スピンで8ライン全部同時に当てる"},
+  {key:"balanceUltra", ja:"伝説の資産家", en:"Legendary Fortune", condJa:"所持金が白金貨100枚以上になる"},
+  {key:"bigBet", ja:"大勝負", en:"High Roller", condJa:"最大ベット額(白金貨100枚)でスピンする"},
+  {key:"smallBet", ja:"堅実プレイ", en:"Playing It Safe", condJa:"最小ベット額(銅貨10枚)でスピンする"},
+  {key:"bottleHoarder", ja:"瓶コレクター", en:"Bottle Collector", condJa:"瓶を5個以上所持する"},
+  {key:"bottleAddict", ja:"リキッドラック中毒", en:"Liquid Luck Addict", condJa:"瓶を通算10回使用する"},
+  {key:"mimicMaster", ja:"ミミック狩りの達人", en:"Mimic Slayer", condJa:"通常のミミック絵柄を通算100回揃える"},
+  {key:"iceMaster", ja:"氷の探求者", en:"Ice Seeker", condJa:"アイスミミックを通算50回揃える"},
+  {key:"jackpotBig", ja:"大ジャックポット", en:"Big Jackpot", condJa:"ミステリーポットで白金貨1枚以上を獲得する"},
+  {key:"moonClicker", ja:"月の秘密", en:"Moon's Secret", condJa:"月を10回クリックする", hidden:true, hintJa:"月を10回クリックする", hintEn:"Click the moon 10 times"},
+  {key:"bunnyClicker", ja:"ウサギを捕まえた", en:"Caught the Bunny", condJa:"歩いているウサギをクリックする", hidden:true, hintJa:"歩いているウサギをクリックする", hintEn:"Click the wandering bunny"},
+  {key:"allSymbolsSlime", ja:"スライム図鑑コンプリート", en:"Slime Compendium", condJa:"スライムテーマの37種類全部を1回以上揃える"},
+  {key:"allSymbolsZombie", ja:"ゾンビ図鑑コンプリート", en:"Zombie Compendium", condJa:"ゾンビテーマの23種類全部を1回以上揃える"},
+  {key:"allSymbolsZenith", ja:"ゼニス図鑑コンプリート", en:"Zenith Compendium", condJa:"ゼニステーマの9種類全部を1回以上揃える"},
+  {key:"firstWinSlime", ja:"はじめてのスライム討伐", en:"First Slime Slain", condJa:"スライムテーマで初めて絵柄を揃えて勝利する"},
+  {key:"firstWinZombie", ja:"はじめてのゾンビ討伐", en:"First Zombie Slain", condJa:"ゾンビテーマで初めて絵柄を揃えて勝利する"},
+  {key:"firstWinZenith", ja:"はじめての聖剣", en:"First Holy Blade", condJa:"ゼニステーマで初めて絵柄を揃えて勝利する"},
+  {key:"slimeKingFound", ja:"キングスライム討伐", en:"King Slime Slain", condJa:"キングスライムを揃える"},
+  {key:"slimeQueenFound", ja:"クイーンスライム討伐", en:"Queen Slime Slain", condJa:"クイーンスライムを揃える"},
+  {key:"slimeGoldenFound", ja:"黄金の輝き", en:"Golden Glimmer", condJa:"ゴールデンスライムを揃える"},
+  {key:"zombieBrideFound", ja:"花嫁を見つけた", en:"Found the Bride", condJa:"花嫁(ゾンビ)を揃える"},
+  {key:"zombieGroomFound", ja:"花婿を見つけた", en:"Found the Groom", condJa:"花婿を揃える"},
+  {key:"zombieDoctorBonesFound", ja:"ドクターボーンズ討伐", en:"Doctor Bones Down", condJa:"ドクターボーンズを揃える"},
+  {key:"zenithMeowmereFound", ja:"運命の一振り", en:"A Meow-velous Strike", condJa:"ニャウメアを揃える"},
+  {key:"zenithTerrabladeFound", ja:"テラブレード顕現", en:"Terra Blade Manifest", condJa:"テラブレードを揃える"},
+  {key:"zenithHorsemanFound", ja:"首なし騎士の剣", en:"Headless Horseman's Blade", condJa:"ホースマンズブレードを揃える"},
+  {key:"zenithAssemble1", ja:"ゼニス、完成!!", en:"Zenith, Assembled!!", condJa:"ゼニスの完成ボーナス(9本全部そろい)を1回発生させる"},
+  {key:"zenithAssemble10", ja:"完成の匠", en:"Master Assembler", condJa:"ゼニスの完成ボーナスを通算10回発生させる"},
+  {key:"zenithAssemble50", ja:"伝説の鍛冶屋", en:"Legendary Blacksmith", condJa:"ゼニスの完成ボーナスを通算50回発生させる"},
+  {key:"unlockSlime", ja:"スライムスロット解禁", en:"Slime Slots Unlocked", condJa:"スライムスロットを解禁する"},
+  {key:"unlockZombie", ja:"ゾンビスロット解禁", en:"Zombie Slots Unlocked", condJa:"ゾンビスロットを解禁する"},
+  {key:"unlockZenith", ja:"ゼニススロット解禁", en:"Zenith Slots Unlocked", condJa:"ゼニススロットを解禁する"},
+  {key:"allThemesUnlocked", ja:"全テーマ制覇", en:"All Themes Unlocked", condJa:"4テーマ全部を解禁する"},
+  {key:"spins10000", ja:"回転の求道者", en:"Spin Seeker", condJa:"通算10,000回スピンする"},
+  {key:"spins25000", ja:"回転の権化", en:"Spin Incarnate", condJa:"通算25,000回スピンする"},
+  {key:"spins50000", ja:"回転の神", en:"Spin Deity", condJa:"通算50,000回スピンする"},
+  {key:"streak15", ja:"止まらない連勝", en:"Streak Unstoppable", condJa:"連勝ストリークを15まで伸ばす"},
+  {key:"streak20", ja:"神がかった連勝", en:"Divine Streak", condJa:"連勝ストリークを20まで伸ばす"},
+  {key:"megaWin300", ja:"驚異のウィン", en:"Astonishing Win", condJa:"1回の配当がベット額の300倍以上になる"},
+  {key:"megaWin500", ja:"神話級ウィン", en:"Mythical Win", condJa:"1回の配当がベット額の500倍以上になる"},
+  {key:"megaWin1000", ja:"宇宙級ウィン", en:"Cosmic Win", condJa:"1回の配当がベット額の1000倍以上になる"},
+  {key:"digMaster500", ja:"発掘の伝説", en:"Excavation Legend", condJa:"通算500回発掘する"},
+  {key:"digMaster1000", ja:"発掘神", en:"Excavation Deity", condJa:"通算1000回発掘する"},
+  {key:"balance500P", ja:"超富豪", en:"Ultra Wealthy", condJa:"所持金が白金貨500枚以上になる"},
+  {key:"balance1000P", ja:"億万長者", en:"Billionaire", condJa:"所持金が白金貨1000枚以上になる"},
+  {key:"jackpotStreak5", ja:"ポットの寵児", en:"Pot's Favorite", condJa:"ミステリーポットに通算5回当選する"},
+  {key:"jackpotStreak10", ja:"ポットの支配者", en:"Pot Overlord", condJa:"ミステリーポットに通算10回当選する"},
+  {key:"kakuhenVeteran25", ja:"確変の化身", en:"Bonus Incarnate", condJa:"確変を通算25回発動させる"},
+  {key:"kakuhenVeteran50", ja:"確変の神", en:"Bonus Deity", condJa:"確変を通算50回発動させる"},
+  {key:"bottleAddict25", ja:"ポーション中毒者", en:"Potion Addict", condJa:"瓶を通算25回使用する"},
+  {key:"bottleHoarder10", ja:"瓶の収集家", en:"Bottle Hoarder Elite", condJa:"瓶を10個以上所持する"},
+  {key:"freeSpinFan50", ja:"フリースピンの申し子", en:"Free Spin Prodigy", condJa:"フリースピンを通算50回発動させる"},
+  {key:"allThemesWin", ja:"全テーマ制覇者", en:"Master of All Themes", condJa:"4テーマ全部で1回以上勝利する"},
+  {key:"shopComplete", ja:"旅商人の上得意", en:"Merchant's Best Customer", condJa:"旅商人ショップの主要アイテムを全部購入する"},
+  {key:"betAllLevels", ja:"全ベット段階制覇", en:"Every Bet Level", condJa:"22段階あるベット額を全部一度は使う"},
+  {key:"treeClicker", ja:"木の妖精", en:"Tree Spirit", condJa:"木を5回クリックする", hidden:true, hintJa:"木を5回クリックする", hintEn:"Click the tree 5 times"},
+  {key:"mushroomClicker", ja:"キノコの妖精", en:"Mushroom Spirit", condJa:"キノコを5回クリックする", hidden:true, hintJa:"キノコを5回クリックする", hintEn:"Click the mushroom 5 times"},
+  {key:"achievementHunter", ja:"実績ハンター", en:"Achievement Hunter", condJa:"実績を通算50個解除する"},
+  {key:"ghostHunter100", ja:"幽霊退治マスター", en:"Ghost Hunt Master", condJa:"幽霊退治で通算100体退治する"},
+  {key:"ghostHunter250", ja:"幽霊祓いの賢者", en:"Ghost Hunt Sage", condJa:"幽霊退治で通算250体退治する"},
+  {key:"mysteryPotMax", ja:"大当たりの神", en:"Jackpot Deity", condJa:"ミステリーポットで白金貨10枚以上を獲得する"},
 ];
 const ACH_PAGE_SIZE = 10;
 let achPage = 0;
@@ -767,22 +780,33 @@ document.getElementById("changelogModal").onclick=(e)=>{ if(e.target.id==="chang
 // Secret, entirely undiscoverable-by-UI strategy guide viewer: no button, no menu entry, no
 // hint anywhere in the game (not even the dev diary). Only reachable by typing this exact
 // word anywhere on the page. Renders the same guide page published as an Artifact, embedded
-// verbatim via SECRET_GUIDE_HTML (secretguide_data.js) so it works standalone with no network
-// dependency on claude.ai.
+// verbatim via SECRET_GUIDE_HTML. That ~50KB data file is loaded lazily (only once this exact
+// word is typed) rather than unconditionally on every page load, since the overwhelming
+// majority of players will never trigger it.
 (function setupSecretGuide(){
   const CODE = "utoutoneko";
   let buffer = "";
+  let loadStarted = false;
+  function showGuide(){
+    const frame = document.getElementById("secretGuideFrame");
+    if(!frame.hasAttribute("data-loaded")){
+      frame.srcdoc = SECRET_GUIDE_HTML;
+      frame.setAttribute("data-loaded","1");
+    }
+    document.getElementById("secretGuideModal").classList.add("show");
+  }
   document.addEventListener("keydown", (e)=>{
     if(e.key.length !== 1) return; // ignore Shift/Enter/arrows/etc.
     buffer = (buffer + e.key.toLowerCase()).slice(-CODE.length);
     if(buffer === CODE){
-      const frame = document.getElementById("secretGuideFrame");
-      if(!frame.src && !frame.hasAttribute("data-loaded")){
-        frame.srcdoc = SECRET_GUIDE_HTML;
-        frame.setAttribute("data-loaded","1");
-      }
-      document.getElementById("secretGuideModal").classList.add("show");
       buffer = "";
+      if(typeof SECRET_GUIDE_HTML !== "undefined"){ showGuide(); return; }
+      if(loadStarted) return; // fetch already in flight from an earlier trigger
+      loadStarted = true;
+      const script = document.createElement("script");
+      script.src = "secretguide_data.js";
+      script.onload = showGuide;
+      document.body.appendChild(script);
     }
   });
   document.getElementById("secretGuideClose").onclick=()=>{ document.getElementById("secretGuideModal").classList.remove("show"); };

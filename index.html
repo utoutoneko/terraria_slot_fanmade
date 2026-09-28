@@ -151,7 +151,7 @@
       <button class="themeslot active" id="theme_mimic" title="Mimic Slots"><img class="spr" src=""></button>
       <button class="themeslot locked" id="theme_slime" title="Slime"><img class="spr" src=""><span class="themecost"><span class="tcnum">5</span><img class="spr" src=""></span></button>
       <button class="themeslot locked" id="theme_zombie" title="Zombie"><img class="spr" src=""><span class="themecost"><span class="tcnum">20</span><img class="spr" src=""></span></button>
-      <button class="themeslot locked" id="theme_zenith" title="Zenith"><img class="spr" src=""><span class="themecost"><span class="tcnum">50</span><img class="spr" src=""></span></button>
+      <button class="themeslot locked" id="theme_zenith" title="Zenith"><img class="spr" src=""><span class="themecost"><span class="tcnum">200</span><img class="spr" src=""></span></button>
     </div>
     <div class="themehint pixel"><span class="hidden-ja">グレー表示のスロットはディフェンダーのメダルで解禁できます</span><span class="hidden-en">Grayed-out slots unlock with Defender Medals</span></div>
   </div>
@@ -364,7 +364,9 @@
 
 <script src="sprites_data.js"></script>
 <script src="audio_data.js"></script>
-<script src="secretguide_data.js"></script>
+<!-- secretguide_data.js (~50KB) is intentionally NOT loaded here - game.js's
+     setupSecretGuide() fetches it lazily only when the secret keyword is typed,
+     so the ~99.9% of players who never trigger it don't pay for it upfront. -->
 <script src="game.js"></script>
 </body>
 </html>

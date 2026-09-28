@@ -1,0 +1,502 @@
+<title>TERRARIA SLOTS 完全攻略本</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+JP:wght@400;500;700;900&display=swap">
+<style>
+:root{
+  --bg:#120c1a; --surface:#1c1530; --surface2:#251c3c; --line:#3a2f57;
+  --gold:#e8c14a; --gold-dim:#b8944f;
+  --slime:#6fd66f; --zombie:#9bc24a; --zenith:#c86aff; --mimic:#e8c14a;
+  --text:#f2ead9; --text-dim:#b6a8d6; --text-faint:#8577a3;
+  --danger:#ff8a8a; --ok:#7dc84a;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#faf6ec; --surface:#fff; --surface2:#f3ecd9; --line:#e2d6b8;
+    --text:#2a2135; --text-dim:#5c5074; --text-faint:#8577a3;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#faf6ec; --surface:#fff; --surface2:#f3ecd9; --line:#e2d6b8;
+  --text:#2a2135; --text-dim:#5c5074; --text-faint:#8577a3;
+}
+:root[data-theme="dark"]{ color-scheme: dark; }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ color-scheme: dark; } }
+
+*{box-sizing:border-box;}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:'Noto Sans JP', 'Hiragino Sans', sans-serif;
+  line-height:1.85; padding-inline:16px;
+}
+.wrap{max-width:780px; margin:0 auto;}
+.pixel{font-family:'Press Start 2P',monospace;}
+
+.hero{
+  padding-block:44px 28px; text-align:center; border-bottom:3px solid var(--line);
+  background: radial-gradient(ellipse 70% 60% at 50% -10%, rgba(232,193,74,.16), transparent 70%);
+}
+.hero img.chest{width:56px; height:56px; image-rendering:pixelated; margin-bottom:14px; filter:drop-shadow(0 3px 6px rgba(0,0,0,.4));}
+.hero h1{
+  font-family:'Press Start 2P',monospace; font-size:clamp(15px,4.2vw,24px);
+  color:var(--gold); text-shadow:0 0 18px rgba(232,193,74,.35); margin:0 0 14px; line-height:1.6;
+}
+.hero p.sub{color:var(--text-dim); font-size:14px; max-width:540px; margin:0 auto;}
+.hero .badges{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:20px;}
+.badge{font-size:11px; padding:6px 12px; border:1px solid var(--line); border-radius:999px; color:var(--text-dim); background:var(--surface);}
+
+nav.toc{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; padding-block:20px; border-bottom:1px solid var(--line); margin-bottom:8px; position:sticky; top:env(safe-area-inset-top,0px); background:var(--bg); z-index:3;}
+nav.toc a{font-size:11.5px; color:var(--text-dim); text-decoration:none; padding:6px 10px; border:1px solid var(--line); border-radius:6px; background:var(--surface);}
+nav.toc a:hover{color:var(--gold); border-color:var(--gold-dim);}
+
+section{padding-block:40px; border-bottom:1px solid var(--line); scroll-margin-top:56px;}
+section:last-of-type{border-bottom:none;}
+.eyebrow{font-family:'Press Start 2P',monospace; font-size:9px; letter-spacing:.06em; color:var(--gold-dim); margin-bottom:10px; display:block;}
+h2{font-size:22px; margin:0 0 6px; color:var(--text);}
+h2 + p.lede{color:var(--text-dim); font-size:14.5px; margin-top:0; margin-bottom:24px; max-width:64ch;}
+h3{font-size:16px; margin:28px 0 10px; color:var(--text);}
+p{margin:0 0 14px; font-size:14.5px;}
+ul,ol{margin:0 0 14px; padding-left:1.3em; font-size:14.5px;}
+li{margin-bottom:6px;}
+strong{color:var(--gold);}
+.text-dim{color:var(--text-dim);}
+
+.cardgrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; margin:18px 0;}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:16px;}
+.card h4{margin:0 0 8px; font-size:14px; display:flex; align-items:center; gap:8px;}
+.card p{font-size:13px; color:var(--text-dim); margin:0;}
+
+.themecard{border:1px solid var(--line); border-radius:12px; overflow:hidden; margin-bottom:22px; background:var(--surface);}
+.themecard .head{display:flex; align-items:center; gap:12px; padding:16px 18px; border-bottom:1px solid var(--line);}
+.themecard .head img{width:34px; height:34px; image-rendering:pixelated; flex-shrink:0;}
+.themecard .head .name{font-size:17px; font-weight:700;}
+.themecard .head .tag{font-size:11px; color:var(--text-faint); margin-top:2px;}
+.themecard .stats{display:flex; gap:18px; padding:14px 18px; flex-wrap:wrap; background:var(--surface2);}
+.stat{min-width:90px;}
+.stat .n{font-size:19px; font-weight:900; font-variant-numeric:tabular-nums;}
+.stat .l{font-size:10.5px; color:var(--text-faint); letter-spacing:.03em;}
+.themecard .body{padding:16px 18px;}
+.themecard.mimic .head .name{color:var(--mimic);}
+.themecard.slime .head .name{color:var(--slime);}
+.themecard.zombie .head .name{color:var(--zombie);}
+.themecard.zenith .head .name{color:var(--zenith);}
+.themecard.mimic .stat .n{color:var(--mimic);}
+.themecard.slime .stat .n{color:var(--slime);}
+.themecard.zombie .stat .n{color:var(--zombie);}
+.themecard.zenith .stat .n{color:var(--zenith);}
+
+table.tiers{width:100%; border-collapse:collapse; font-size:13px; margin:10px 0;}
+table.tiers th, table.tiers td{padding:7px 8px; text-align:left; border-bottom:1px solid var(--line); word-break:keep-all; overflow-wrap:anywhere;}
+table.tiers th:first-child, table.tiers td:first-child{white-space:nowrap;}
+table.tiers th{color:var(--text-faint); font-weight:500; font-size:11px; letter-spacing:.02em;}
+table.tiers td.mult{font-variant-numeric:tabular-nums; font-weight:700; color:var(--gold);}
+.tierwrap{overflow-x:auto;}
+
+table.odds{width:100%; border-collapse:collapse; font-size:12px; margin:0;}
+table.odds th{text-align:left; font-size:10px; color:var(--text-faint); font-weight:500; padding:6px 7px; border-bottom:2px solid var(--line); position:sticky; top:0; background:var(--surface);}
+table.odds td{padding:6px 7px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums;}
+table.odds td.num, table.odds th.num{text-align:right;}
+table.odds .en{display:block; font-size:9.5px; color:var(--text-faint); font-weight:400;}
+table.odds .scatter{color:var(--gold); font-size:9px; margin-left:5px;}
+
+details.oddsbox{margin-top:14px; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:var(--surface2);}
+details.oddsbox summary{cursor:pointer; padding:10px 14px; font-size:12.5px; font-weight:700; color:var(--text-dim); list-style:none; display:flex; align-items:center; gap:6px;}
+details.oddsbox summary::before{content:"▶"; font-size:9px; transition:transform .15s;}
+details.oddsbox[open] summary::before{transform:rotate(90deg);}
+details.oddsbox summary:hover{color:var(--gold);}
+.oddstablewrap{max-height:420px; overflow:auto; border-top:1px solid var(--line);}
+.oddsnote{font-size:11px; color:var(--text-faint); padding:8px 14px 12px; margin:0;}
+
+.flow{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:18px 0;}
+.flow .step{padding:10px 16px; border-radius:8px; border:1px solid var(--line); background:var(--surface); font-size:13px; font-weight:700; white-space:nowrap;}
+.flow .arrow{color:var(--text-faint); font-size:18px;}
+.flow .step.locked{opacity:.55;}
+
+table.shop{width:100%; border-collapse:collapse; font-size:13.5px; table-layout:fixed;}
+table.shop th{text-align:left; font-size:11px; color:var(--text-faint); padding:8px; border-bottom:1px solid var(--line);}
+table.shop th:first-child, table.shop td:first-child{width:30%; word-break:keep-all; overflow-wrap:anywhere;}
+table.shop th:last-child, table.shop td:last-child{width:56px;}
+table.shop td{padding:10px 8px; border-bottom:1px solid var(--line); vertical-align:top; word-break:keep-all; overflow-wrap:anywhere;}
+table.shop td.price{font-weight:700; color:var(--gold); white-space:nowrap; font-variant-numeric:tabular-nums;}
+table.shop img{width:22px; height:22px; image-rendering:pixelated; vertical-align:middle; margin-right:4px;}
+
+table.ui{width:100%; border-collapse:collapse; font-size:13px;}
+table.ui th{text-align:left; font-size:11px; color:var(--text-faint); font-weight:500; padding:7px 8px; border-bottom:1px solid var(--line);}
+table.ui td{padding:8px; border-bottom:1px solid var(--line); vertical-align:top;}
+table.ui td:first-child{white-space:nowrap; font-weight:700; width:32%;}
+table.ui td:last-child{color:var(--text-dim);}
+
+table.achtable{width:100%; border-collapse:collapse; font-size:12.5px;}
+table.achtable th{text-align:left; font-size:10.5px; color:var(--text-faint); font-weight:500; padding:6px 8px; border-bottom:2px solid var(--line); position:sticky; top:0; background:var(--surface);}
+table.achtable td{padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:top;}
+table.achtable td.num{color:var(--text-faint); font-variant-numeric:tabular-nums; width:26px;}
+table.achtable .en{display:block; font-size:9.5px; color:var(--text-faint); font-weight:400;}
+table.achtable .hiddenbadge{display:inline-block; font-size:9px; color:var(--bg); background:var(--gold); border-radius:4px; padding:1px 5px; margin-left:6px; font-weight:700;}
+.achtablewrap{max-height:520px; overflow:auto; border:1px solid var(--line); border-radius:8px;}
+
+.tips{display:grid; gap:12px;}
+.tip{display:flex; gap:12px; padding:14px; background:var(--surface); border:1px solid var(--line); border-radius:10px;}
+.tip .num{font-family:'Press Start 2P',monospace; font-size:13px; color:var(--gold); flex-shrink:0;}
+.tip p{margin:0; font-size:13.5px;}
+
+footer{padding-block:32px 48px; text-align:center;}
+footer p{font-size:11.5px; color:var(--text-faint); max-width:56ch; margin:0 auto 8px;}
+
+@media (max-width:480px){
+  .themecard .stats{gap:12px;}
+  .stat{min-width:70px;}
+  table.ui td:first-child{width:auto;}
+}
+</style>
+
+<div class="wrap">
+
+<div class="hero">
+  <img class="chest" src="data:image/webp;base64,UklGRjwBAABXRUJQVlA4TDABAAAvG0ALEIegJpKt5stI5FRSU2EFWahBBi5QEISoiWSr+RFwQI8lhCIEDzm1CKBQUtuKRAEOCr33z0AJEoweu5v5DwDgHT1hUZha24wTKKgom3nZpd35vfv894049X9VP6xUDA7bNnKkv5xD/+Xeze79bgVSRP8ZuG3biLeM625/8cterUr2qkFBF2Zba2o4bN1cWaipYXL08E0XT7CmhZXdzotYq4bOi4aVzZ5dXZitRW9bYwe6u/Kl4R/5WpM6urJw2FCL3uaCvqHUV63RJ6hvKvdVa1R76lmJZ7zbEHMdK4YLOp8qlsqntPIYroGGGnbTXk8epp2WyZ/U6EkMA/CGMmm1MVwnh7Wk1aJDzZWXaugZGFWFQ409lsmH+F8b4EeZj5BcsazEfyH2UxvEsmoA" alt="">
+  <h1>TERRARIA SLOTS<br>完全攻略本</h1>
+  <p class="sub">terrariajp鯖限定配布のTerraria非公式ファンメイド3×3スロット。基本ルール・全76絵柄の確率と倍率・ボーナス・実績100種の達成条件・画面内の全ボタンと機能まで、これ一冊で本当に全部わかる決定版。</p>
+  <div class="badges">
+    <span class="badge">4テーマ・全76絵柄</span>
+    <span class="badge">実績100種(達成条件つき)</span>
+    <span class="badge">ミニゲーム2種</span>
+    <span class="badge">非商用ファンメイド</span>
+  </div>
+</div>
+
+<nav class="toc">
+  <a href="#rules">基本ルール</a>
+  <a href="#bonus">ボーナス</a>
+  <a href="#themes">4テーマ・確率表</a>
+  <a href="#mini">ミニゲーム</a>
+  <a href="#shop">旅商人</a>
+  <a href="#ui">操作ガイド</a>
+  <a href="#ach">実績100種</a>
+  <a href="#tips">攻略のコツ</a>
+</nav>
+
+<section id="rules">
+  <span class="eyebrow">01 / BASICS</span>
+  <h2>基本ルール</h2>
+  <p class="lede">3×3のリールに絵柄を並べて、8本のラインで一気に判定するシンプルな仕組み。</p>
+  <div class="cardgrid">
+    <div class="card"><h4>8ライン判定</h4><p>横3列・縦3列・斜め2本、毎スピン合計8ラインをまとめて判定。1回のスピンで複数ライン同時ヒットも狙える。</p></div>
+    <div class="card"><h4>絵柄が3つ並ぶと配当</h4><p>同じ絵柄がライン上に3つ揃うと、その絵柄の倍率×ベット額を獲得。レアな絵柄ほど高倍率(詳細は各テーマの確率表)。</p></div>
+    <div class="card"><h4>通貨はTerraria準拠</h4><p>銅貨=1、銀貨=100、金貨=10,000、白金貨=1,000,000。白金貨が10,000枚に達すると自動でディフェンダーのメダルに変換される(1000枚→メダル1枚、必ず手元にプラチナ1000枚は残る)。</p></div>
+    <div class="card"><h4>ベット額は22段階</h4><p>銅貨10枚〜白金貨100枚まで、桁ごとに1/2.5/5倍で刻んだ22段階。掛け金はリロードしても保存される。</p></div>
+  </div>
+</section>
+
+<section id="bonus">
+  <span class="eyebrow">02 / BONUS SYSTEMS</span>
+  <h2>ボーナスシステム</h2>
+  <p class="lede">通常の配当以外に、スピンを重ねるほど発生しやすくなる仕掛けが5つ。テーマが変わっても仕組みは共通。</p>
+  <div class="cardgrid">
+    <div class="card"><h4>🎁 ミステリーポット(ジャックポット)</h4><p>毎スピン、掛け金の<strong>3%</strong>(ラッキーコイン購入後は4%)が積み立てられ、<strong>1スピンあたり0.09%</strong>の確率でプール全額を獲得。獲得後は50銀貨から積み立て直し。画面上部の「POT」表示が現在のプール額。</p></div>
+    <div class="card"><h4>🌀 フリースピン</h4><p>各テーマのスキャッター絵柄(★印)が盤面のどこかに3つ以上出現すると、フリースピン5回(配当2倍・掛け金消費なし)を獲得。</p></div>
+    <div class="card"><h4>🔥 連勝ストリーク</h4><p>2連勝目から配当+10%、以降1連勝ごとに+10%(最大+100%)。負けると即リセットされるので、連勝中は伸ばすほどお得。</p></div>
+    <div class="card"><h4>🌈 確変(ボーナスモード)</h4><p>3連勝でトリガー、または確変なしで100回転(天井)で強制発動。5スピンの間、配当×1.5+高ランク絵柄が出やすくなる。確変中に条件をもう一度満たすと、上書きではなく<strong>残りスピンが延長</strong>される。確変中はスピンボタンが虹色に変化。</p></div>
+    <div class="card"><h4>🧪 瓶とマナ</h4><p>発掘で拾える瓶を飲むと5スピンの間、配当2倍(プレミアムボトルなら3倍)。使用中にもう1本使うと<strong>残りスピンが延長</strong>(倍率は高い方が優先、下がることはない)。夜に降る流れ星を5個集めるとマナ1個、消費すると次の1スピンだけ低ランク絵柄が出にくくなる。</p></div>
+  </div>
+</section>
+
+<section id="themes">
+  <span class="eyebrow">03 / SLOT THEMES &amp; ODDS</span>
+  <h2>4つのスロットテーマ・絵柄別確率表</h2>
+  <p class="lede">解禁は一直線。前のテーマを解禁しないと次には進めない。後のテーマほど絵柄数が増え、還元率も跳ね上がる。各テーマの下の「▶全○種の詳細データ」を開くと、絵柄1つ1つの出現率・単一ライン的中率まで見られる。</p>
+
+  <div class="flow">
+    <div class="step" style="border-color:var(--mimic);color:var(--mimic);">ミミック(最初から)</div>
+    <span class="arrow">→</span>
+    <div class="step locked" style="border-color:var(--slime);color:var(--slime);">スライム 5枚</div>
+    <span class="arrow">→</span>
+    <div class="step locked" style="border-color:var(--zombie);color:var(--zombie);">ゾンビ 20枚</div>
+    <span class="arrow">→</span>
+    <div class="step locked" style="border-color:var(--zenith);color:var(--zenith);">ゼニス 200枚</div>
+  </div>
+  <p class="text-dim" style="font-size:13px;">※金額はすべてディフェンダーのメダル。白金貨10,000枚到達でガイド横に切り替えアイコンが出現する。</p>
+  <p class="oddsnote" style="padding:0 0 14px;">確率表の「単一ライン的中率」は8本のラインのうち<strong>1本だけ</strong>でその絵柄が3つ揃う確率(1/N表記)。実際は8本を同時に見ているので体感の的中率はこれよりだいぶ高い。</p>
+
+  <div class="themecard mimic">
+    <div class="head">
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABsAAAAsCAYAAACUq8NAAAACdElEQVR4nNWYy2tTQRSHv4ggPlJcqVSjAfMXaKmbVKq9IIrBFBSKEjAgKNiFUFEQxJbuihUXgrgK+OhCEStC3SSNtRZsUXER2k2E1Egx1IUaGujGuLg53M5wb26KkIm/3Zycmbkf5zGHBKijcDhcXbve/GdF+X3h63Kg3n5dG9bj/K/a6GYUoucTrxX7zNhJZZ3JrlQBXs5UGiJsKpnyRUI0dHsUgIXxfgDaw1sASFy8AsD2PWeVQ+LREOBP2HwyL6LEhWMAtO8/CMDSl4/KWtf5vuuAN6H5bBRl0tMA9Gh2L8Lxd0UA4tGQa5Y2nywSiQBw9FBnzXwPgF+frwFrCK0uZbNO+PPbWN3LzNWZZVlVgHw+D8DA4DAAU5kMAIf3uRMK2aMHdxX7/Ye/AaeHmsvGdDodAIcw3tOtOE9lxFEllNgtFSoAnLkxCcCdx8drG5aBVqgzIUwmkx4xFEebUIjyAbvj5ObnXS8zTybyi2HbthgAbxdfARA7Za9vXR0AoFAomOsg65oh9DqMLdq9sOPZU8CbSNS6ZPLuCZFo67kdAOy2RgAYHbwJ/A8xk1hdLtmdYDKXAxwiUantNAAHOu3XQydsHTIhSqVSAIzsDQMOkcwo8t7Nzv4AYHVXLwDBYBCA7IRdh+Y7iF5PfkTSG0M77fmy+P0FAGV6lXPNkXnF6FI2oWwSIl3FUqXuZeZn/b7oquIks74uiZVIyCQbP0y/AQzVmWs2So97/6S/oUP8iETmyT7NzQHOl0rdSB2JGiUSme+NkpVHTtgzRblcBmBTjVBIRH5EIvNkIiHs6OpW7EIi8iMStQ6ZSP+np1ESXU0l+wuqcA8vZBMc6wAAAABJRU5ErkJggg==" alt="">
+      <div><div class="name">ミミック</div><div class="tag">最初から解禁済み・基準のテーマ</div></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n">7種</div><div class="l">絵柄数</div></div>
+      <div class="stat"><div class="n">426%</div><div class="l">実測RTP</div></div>
+      <div class="stat"><div class="n">×1,200</div><div class="l">最高倍率</div></div>
+    </div>
+    <div class="body">
+      <p>木箱・金箱・アイス・コラプト・クリムゾン・ハロウ・ジャングルの7種のミミックに、最後は<strong>プレゼントミミック</strong>(スキャッター兼ジャックポット、×1200)。全テーマの基準となる標準的な還元率。</p>
+      <details class="oddsbox">
+        <summary>全7種の詳細データ(出現率・的中率)</summary>
+        <div class="oddstablewrap"><table class="odds">
+          <thead><tr><th>Tier</th><th>絵柄</th><th class="num">重み</th><th class="num">出現率</th><th class="num">単一ライン的中率</th><th class="num">倍率</th></tr></thead>
+          <tbody id="odds-mimic"></tbody>
+        </table></div>
+      </details>
+    </div>
+  </div>
+
+  <div class="themecard slime">
+    <div class="head">
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAWBAMAAABTd4N3AAAAElBMVEUAAAAaSawgWtQKHEIUOIRAdOICk79SAAAAAXRSTlMAQObYZgAAAFBJREFUeF6Fy+EJwDAQgtFbwRVuBVfICtl/lcYDoWBKv38+sCZO5QLIhT6ZAs7U3rvBBG+BJQGCke4EPQQO/AD8ggl3kLh1AYlpaScUX1XCA8GOLF3RH5VBAAAAAElFTkSuQmCC" alt="">
+      <div><div class="name">スライム</div><div class="tag">解禁コスト:ディフェンダーのメダル5枚</div></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n">37種</div><div class="l">絵柄数</div></div>
+      <div class="stat"><div class="n">492%</div><div class="l">実測RTP</div></div>
+      <div class="stat"><div class="n">×14,742</div><div class="l">最高倍率</div></div>
+    </div>
+    <div class="body">
+      <p>Terraria本編に実在するスライムの亜種をほぼ網羅した最大規模のラインナップ。グリーン/ブルーの定番から、プレゼントスライム4色、コラプト/クリムスライムなどのハードモード勢、そして2大ボス級まで8段階のtier構成。</p>
+      <div class="tierwrap">
+      <table class="tiers">
+        <tr><th>tier</th><th>絵柄(代表)</th><th>倍率</th></tr>
+        <tr><td>1</td><td>グリーン/ブルースライム</td><td class="mult">×128</td></tr>
+        <tr><td>2</td><td>レッド/パープル/イエロー/ブラック/アイス</td><td class="mult">×217</td></tr>
+        <tr><td>3</td><td>サンド/ジャングル/ラーヴァ/ダンジョン 他</td><td class="mult">×353</td></tr>
+        <tr><td>4</td><td>マザー/ベイビー/アンブレラ/プレゼント4色 他</td><td class="mult">×609</td></tr>
+        <tr><td>5</td><td>トクシックスラッジ/スライマー/イルミナント 他</td><td class="mult">×1,026</td></tr>
+        <tr><td>6</td><td>コラプト/スライムリング/クリムスライム/ガストロポッド</td><td class="mult">×1,796</td></tr>
+        <tr><td>7</td><td>ピンキー/クリスタル/バウンシー/ヘヴンリー</td><td class="mult">×3,194</td></tr>
+        <tr><td>7★スキャッター</td><td><strong>ゴールデンスライム</strong></td><td class="mult">×1,106</td></tr>
+        <tr><td>8 ボス</td><td>キングスライム</td><td class="mult">×7,371</td></tr>
+        <tr><td>8 ボス</td><td><strong>クイーンスライム</strong>(最高倍率)</td><td class="mult">×14,742</td></tr>
+      </table>
+      </div>
+      <details class="oddsbox">
+        <summary>全37種の詳細データ(出現率・的中率)</summary>
+        <div class="oddstablewrap"><table class="odds">
+          <thead><tr><th>Tier</th><th>絵柄</th><th class="num">重み</th><th class="num">出現率</th><th class="num">単一ライン的中率</th><th class="num">倍率</th></tr></thead>
+          <tbody id="odds-slime"></tbody>
+        </table></div>
+      </details>
+    </div>
+  </div>
+
+  <div class="themecard zombie">
+    <div class="head">
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACIAAAAuCAMAAAB6WzuLAAAASFBMVEUAAAAXFxMpKSVCQTtYV08yLSItHA5oRCe+q4JuY0uaZTo3NzL/5q+0AADx8fHj6JaUcGhWQTw9DQ83KSaBJinR1oqXm2QtLR0eJMMgAAAAAXRSTlMAQObYZgAAAP1JREFUeNql0d0OgyAMhmEUmftVoZTe/52unw1xh8Dek5nlwdrgfpvO7MldNZIKvJ9nY/gdJ8viPaD3gP3ExgBVhmE9BGBZzj+11wsU0FA7AUKlMNvSFfQQJMLs/bZN077j4wHGyOezbcwg89xPAPadz3IuRQSglyCiCzCXQpRSD8lZhOg4gC4gkjNQGxEpGkiMpElNKVALAWCNKMZDswMiMdqzSCvJWkoYVQ9gAQwWaSPOATjtdltXO4BsGJFzLQSBGMKrU8JY0QDaiYW1bfEY64hegoL2fmMUVh0lhuzy/iP3ewi4BJFxgktQpI0SgOdz1R5aCKMECAWti3wBNIkuhUyqF4UAAAAASUVORK5CYII=" alt="">
+      <div><div class="name">ゾンビ</div><div class="tag">解禁コスト:ディフェンダーのメダル20枚</div></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n">23種</div><div class="l">絵柄数</div></div>
+      <div class="stat"><div class="n">1001%</div><div class="l">実測RTP</div></div>
+      <div class="stat"><div class="n">×2,673</div><div class="l">最高倍率</div></div>
+    </div>
+    <div class="body">
+      <p>実在するゾンビ亜種をほぼ網羅。ハロウィン限定のドクター/スーパーマン/ピクシー、クリスマス限定のXmas/セーター、ブラッドムーン級のドクターボーンズ/ブラッドゾンビ/花婿まで勢揃い。還元率は前作の倍以上に跳ね上がる。</p>
+      <div class="tierwrap">
+      <table class="tiers">
+        <tr><th>tier</th><th>絵柄(代表)</th><th>倍率</th></tr>
+        <tr><td>1</td><td>ゾンビ</td><td class="mult">×97</td></tr>
+        <tr><td>2</td><td>ハゲ/木っ端/松明ゾンビ</td><td class="mult">×175</td></tr>
+        <tr><td>3</td><td>ピンクッション/スライムド/沼地/フィメールゾンビ</td><td class="mult">×292</td></tr>
+        <tr><td>4</td><td>ドクター/スーパーマン/ピクシー/Xmas/セーター</td><td class="mult">×486</td></tr>
+        <tr><td>5</td><td>レインコート/フローズン/スポア/ウジ虫/モス</td><td class="mult">×875</td></tr>
+        <tr><td>6</td><td>ドクターボーンズ/ブラッドゾンビ/花婿/アイゾー</td><td class="mult">×1,944</td></tr>
+        <tr><td>7★スキャッター</td><td><strong>花嫁</strong>(最高倍率)</td><td class="mult">×2,673</td></tr>
+      </table>
+      </div>
+      <details class="oddsbox">
+        <summary>全23種の詳細データ(出現率・的中率)</summary>
+        <div class="oddstablewrap"><table class="odds">
+          <thead><tr><th>Tier</th><th>絵柄</th><th class="num">重み</th><th class="num">出現率</th><th class="num">単一ライン的中率</th><th class="num">倍率</th></tr></thead>
+          <tbody id="odds-zombie"></tbody>
+        </table></div>
+      </details>
+    </div>
+  </div>
+
+  <div class="themecard zenith">
+    <div class="head">
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADgAAAA4CAMAAACfWMssAAAAPFBMVEUAAABjSrsYFjBCFTTuy+bl6/IPVH0vLnFVabUUeHat1sHh7Z+ypeJJNZ5uy70qJ1JOppk7N3N9L2i2bb4Hmi4kAAAAAXRSTlMAQObYZgAAAQxJREFUeNq91MGOwyAMhOFiDA4BkrR9/3ddTywtu8cepr+U4ydZg5THZ22/8WGw4qlnxofB0t13YEpg4qU0Bh+CqRYvYM5caKaKM8+zlMVYcDEzEdVgTIhZxlAPs+w7GA+uZ49zVcGY0CwYvjGCMWGcB7Bm4UHz9h0ngq5ZODB5uwe2baDBOHDzAgVbszDg+uGa959xYL0Tb4w5/zIObF7vx1HrnKrbNqcZE9bavXYnAjqGWTAGRDnj1OLVCiqiyoWgvef8fpfSGnApYDyIU6/r9QJvDc/ChUjEgQfYe61gTHieKYHGs2CeB6JBETBMFM8CxoL17vkEQwiMCXu/rmArJsQYx5HzNyHoF+EP3+0WSTq+4JMAAAAASUVORK5CYII=" alt="">
+      <div><div class="name">ゼニス</div><div class="tag">解禁コスト:ディフェンダーのメダル200枚</div></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n">9種</div><div class="l">絵柄数</div></div>
+      <div class="stat"><div class="n">2000%</div><div class="l">実測RTP</div></div>
+      <div class="stat"><div class="n">×17,500</div><div class="l">完成ボーナス</div></div>
+    </div>
+    <div class="body">
+      <p>最終テーマ。ゼニスの実在レシピ通り、<strong>銅剣を除く9本の剣</strong>で構成。他3テーマと違い、通常のライン配当に加えて<strong>特殊勝利条件</strong>を搭載:9マス全部に9種類の剣が1本ずつ揃うと、専用演出「★ゼニス、完成!!★」とともにベット×17,500倍のボーナスが発生する。ライン配当と完成ボーナスは絵柄が全部バラバラという条件上、数学的に同時発生しない。解禁コスト・還元率とも2026-09-28に大幅強化(200枚/約2000%、旧は50枚/約1076%)。</p>
+      <div class="tierwrap">
+      <table class="tiers">
+        <tr><th>tier</th><th>絵柄</th><th>倍率</th></tr>
+        <tr><td>1</td><td>エンチャンテッドソード</td><td class="mult">×35</td></tr>
+        <tr><td>2</td><td>スターフューリー</td><td class="mult">×69</td></tr>
+        <tr><td>3</td><td>スターラース/シードラー</td><td class="mult">×115</td></tr>
+        <tr><td>3</td><td>インフラックスウェイバー/ビーキーパー</td><td class="mult">×128</td></tr>
+        <tr><td>4</td><td>ホースマンズブレード</td><td class="mult">×233</td></tr>
+        <tr><td>5</td><td>ニャウメア/テラブレード</td><td class="mult">×1,743</td></tr>
+        <tr><td>特殊</td><td><strong>9本全部そろい(完成ボーナス)</strong></td><td class="mult">×17,500</td></tr>
+      </table>
+      </div>
+      <details class="oddsbox">
+        <summary>全9種の詳細データ(出現率・的中率)</summary>
+        <div class="oddstablewrap"><table class="odds">
+          <thead><tr><th>Tier</th><th>絵柄</th><th class="num">重み</th><th class="num">出現率</th><th class="num">単一ライン的中率</th><th class="num">倍率</th></tr></thead>
+          <tbody id="odds-zenith"></tbody>
+        </table></div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section id="mini">
+  <span class="eyebrow">04 / MINIGAMES</span>
+  <h2>ミニゲーム</h2>
+  <p class="lede">所持金が尽きても遊べる、コイン稼ぎ用のミニゲームが2種類。どちらもクールダウン制。</p>
+  <div class="cardgrid">
+    <div class="card"><h4>⛏ 発掘</h4><p>6マスを掘って銅貨〜金貨、まれに瓶を発見。クールダウン25秒(発掘免許皆伝購入で15秒に短縮)。</p></div>
+    <div class="card"><h4>🔦 幽霊退治</h4><p>真っ暗な部屋の中、指/カーソルが松明代わり。光が届いた範囲でしか幽霊に触れられない。5匹全部退治でボーナス。クールダウン25秒(発掘免許皆伝で共通して15秒に短縮)。</p></div>
+  </div>
+</section>
+
+<section id="shop">
+  <span class="eyebrow">05 / TRAVELING MERCHANT</span>
+  <h2>旅商人のショップ</h2>
+  <p class="lede">地面に立つ旅商人から、ディフェンダーのメダルで便利アイテムを購入できる。</p>
+  <div class="tierwrap">
+  <table class="shop">
+    <tr><th>商品</th><th>効果</th><th>価格</th></tr>
+    <tr><td><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAA4CAMAAADdG7i7AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAABmUExURQAAAE0lGDkuP8lrShQqTjIMF1QdLX8mO96eeyYgMj42UNOEYp4/VV1UcIt/p/f397WxvvHPujExYzY2gmtZdE5RXq1iSnl9k+Pg5d7O6LujyI15lwEeLSQ1a3uMwUpdmi1BfwMfMG9Gq3AAAAABdFJOUwBA5thmAAABIklEQVR42p3T646DIBAF4LKKorbae+XOvP9LrqdozGY36bAnGQW+CYEfHP7K1xqMyxhozDxrPc9oKGOg1sbkzT8z/Yi1WlubicchxIhKyfv7PSOP9wZgWgLkMvBwkLJtj8e2bRopscJlohiJpMwIJkqJiMv7pVD4chmhXwFyuev6vluC/zieTphxGRFCqdttmtBwPo9j36OlhK/XaVIKDdv2HAZeLmpNVdEaLhMJsWNaQ8ThvCDewTguCQH4mZG6ds5aY6x1DpsiZZyfnXMxCvF8VpUQXMaRgFpnrqph4DKmRNvRMCtlHA7oPWZqyX84hMzDwOX8jOqaqGneF0OAbMbjR6HBe6JNyjlGNJRx06DAIZTy64V6PDLHWMZbpMx/Nn8D8lZVlYc8ZZ0AAAAASUVORK5CYII=">オートスピン権利証</td><td>累計スピン数(100回)を待たずに自動スピンを即解禁</td><td class="price">15枚</td></tr>
+    <tr><td>プレミアムボトル</td><td>使用で5スピンの間、配当3倍(通常の瓶は2倍)。何個でも購入可</td><td class="price">3枚</td></tr>
+    <tr><td>ターボスピン権利証</td><td>リール停止までの時間を短縮。購入後はいつでもON/OFF切替可能</td><td class="price">20枚</td></tr>
+    <tr><td>発掘免許皆伝</td><td>発掘・幽霊退治のクールダウンを25秒→15秒に短縮</td><td class="price">10枚</td></tr>
+    <tr><td>相棒のミミック</td><td>画面をちょこちょこついてくる小さな相棒(見た目のみ、ON/OFF切替可)</td><td class="price">5枚</td></tr>
+    <tr><td>ラッキーコイン</td><td>ミステリーポットの積立率を3%→4%に(還元率自体は不変)</td><td class="price">8枚</td></tr>
+    <tr><td><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAeBAMAAADN62OsAAAAIVBMVEUAAADf3duEu0Whk4lXnUcufj9KQTo0SysYTCU8My0JKhRaP4oIAAAAAXRSTlMAQObYZgAAAGBJREFUeNptylENgEAMBNGzgIVawEItYOEs1MJawAIqgYZkkj32a18y45s0mFNxXCvRkXKiykwZSQtD0tchI2lVaBpfZf8IbQvn9SiiquU8d0Wv5WwjZxtBjCBGEM/xyxvgJlMlQ9Iv+AAAAABJRU5ErkJggg==">実績の攻略本</td><td>隠し実績(???)の正体と達成条件を先に教えてもらえる</td><td class="price">100枚</td></tr>
+  </table>
+  </div>
+  <p class="text-dim" style="font-size:13px;margin-top:14px;">通貨はディフェンダーのメダル。累計プラチナ貨10,000枚に到達すると自動的に1000枚→メダル1枚のレートで変換される(手元に必ずプラチナ貨1000枚は残る)。</p>
+</section>
+
+<section id="ui">
+  <span class="eyebrow">06 / SCREEN GUIDE</span>
+  <h2>画面の全ボタン・機能ガイド</h2>
+  <p class="lede">筐体まわり・地上の装飾・NPCまで、画面上でクリックできるもの全部の一覧。</p>
+
+  <h3>トップバー</h3>
+  <table class="ui">
+    <tr><td>ガイド(？)</td><td>基本ルール・ボーナスの仕組みの説明を表示</td></tr>
+    <tr><td>サウンド</td><td>効果音のON/OFF切替</td></tr>
+    <tr><td>言語(JA/EN)</td><td>画面表示を日本語⇔英語に切替</td></tr>
+    <tr><td>テーマ切替アイコン</td><td>4テーマの切替・解禁モーダルを開く。<strong>累計プラチナ貨10,000枚</strong>に到達するまで非表示</td></tr>
+  </table>
+
+  <h3>残高・ポット表示</h3>
+  <table class="ui">
+    <tr><td>所持金表示</td><td>銅貨・銀貨・金貨・白金貨の内訳表示</td></tr>
+    <tr><td>POT(ミステリーポット)</td><td>積み立て中の金額。詳細は「02 ボーナスシステム」参照</td></tr>
+    <tr><td>ディフェンダーのメダル表示</td><td>テーマ解禁・旅商人ショップで使う通貨</td></tr>
+  </table>
+
+  <h3>筐体・HUD</h3>
+  <table class="ui">
+    <tr><td>ベット +/-</td><td>掛け金を22段階で増減(銅貨10枚〜白金貨100枚)</td></tr>
+    <tr><td>スピンボタン</td><td>通常時は剣アイコン、確変中は虹色カーソルアイコンに変化</td></tr>
+    <tr><td>ハート</td><td>現在の連勝ストリーク段階を表示</td></tr>
+    <tr><td>星(マナ)</td><td>クリックでマナを1消費、次の1スピンだけ低ランク絵柄が出にくくなる</td></tr>
+    <tr><td>瓶ボタン</td><td>所持している瓶(通常/プレミアム)を使用</td></tr>
+    <tr><td>オートスピン</td><td>ボタンで自動連続スピンのON/OFF(通算100スピン到達、または権利証購入で解禁)</td></tr>
+  </table>
+
+  <h3>地上の装飾・NPC(クリックできるもの)</h3>
+  <table class="ui">
+    <tr><td>旅商人</td><td>ショップを開く</td></tr>
+    <tr><td>看板</td><td>実績一覧(ページ送り式・全100種)を開く</td></tr>
+    <tr><td>机</td><td>チャットログ(直近30件のゲーム内メッセージ履歴)を開く</td></tr>
+    <tr><td>金貨山</td><td>配当表(現在テーマの倍率・理論値RTP)モーダルを開く</td></tr>
+    <tr><td>キノコ</td><td>開発秘話(こぼれ話コーナー)を開く</td></tr>
+    <tr><td>木</td><td>更新履歴(全アップデートの詳細ログ)を開く</td></tr>
+    <tr><td>太陽・月</td><td>昼夜で自動的に切り替わる演出。月は<strong>10回クリックで隠し実績</strong>「月の秘密」</td></tr>
+    <tr><td>ウサギ</td><td>画面を横切る野生のウサギ。クリックで隠し実績「ウサギを捕まえた」</td></tr>
+    <tr><td>相棒のミミック</td><td>ショップ購入後に表示される、画面をちょこちょこついてくる相棒(見た目のみ)</td></tr>
+  </table>
+
+  <h3>ミニゲーム起動ボタン</h3>
+  <table class="ui">
+    <tr><td>発掘ボタン</td><td>発掘ミニゲームを開く</td></tr>
+    <tr><td>幽霊退治ボタン</td><td>幽霊退治ミニゲームを開く</td></tr>
+  </table>
+
+  <h3>その他</h3>
+  <table class="ui">
+    <tr><td>リセットボタン</td><td>セーブデータを初期化(所持金・実績・進行状況すべて初期状態に戻る)</td></tr>
+  </table>
+</section>
+
+<section id="ach">
+  <span class="eyebrow">07 / ACHIEVEMENTS</span>
+  <h2>実績(全100種・達成条件つき)</h2>
+  <p class="lede">スピン数・連勝・発掘回数・確変・絵柄コンプリート・4テーマそれぞれの図鑑コンプリートなど幅広いジャンルから100種類。うち4つは画面のどこにもヒントがない隠し実績(★印)。</p>
+  <div class="achtablewrap"><table class="achtable">
+    <thead><tr><th class="num">#</th><th>実績名</th><th>達成条件</th></tr></thead>
+    <tbody id="ach-body"></tbody>
+  </table></div>
+</section>
+
+<section id="tips">
+  <span class="eyebrow">08 / STRATEGY</span>
+  <h2>攻略のコツ</h2>
+  <div class="tips">
+    <div class="tip"><span class="num">01</span><p>所持金がなくなっても発掘・幽霊退治で無限にコインを稼げるので、詰むことはない。焦らず稼いでから大きくベットしよう。</p></div>
+    <div class="tip"><span class="num">02</span><p>白金貨10,000枚を貯めると自動でディフェンダーのメダルに変換される。テーマ解禁とショップの両方に使うので、序盤はメダルを計画的に温存するのがおすすめ。</p></div>
+    <div class="tip"><span class="num">03</span><p>連勝ストリークは負けた瞬間にリセットされる。ボーナス性能を活かすには、ベットを少し下げてでも連勝を切らさない立ち回りが有効。</p></div>
+    <div class="tip"><span class="num">04</span><p>確変は3連勝または天井(100回転)で発動。天井の残りカウントは画面下に表示されるので、そろそろだと思ったら我慢してスピンを続けよう。確変中にもう一度3連勝すれば残りスピンはさらに延長される。</p></div>
+    <div class="tip"><span class="num">05</span><p>スライム→ゾンビ→ゼニスと進むほど桁違いに還元率が上がる。メダルを貯めたら奥のテーマまで進むのが最終的にはいちばん効率がいい。</p></div>
+    <div class="tip"><span class="num">06</span><p>ゼニスの完成ボーナス(×17,500)は9マス全部が異なる絵柄という条件上、通常のライン配当とは絶対に同時発生しない。ライン狙いと完成狙いはトレードオフではなく、ただの運。気長に回そう。</p></div>
+    <div class="tip"><span class="num">07</span><p>ターボスピン権利証は買った後もいつでもON/OFFできる。じっくり演出を見たい大勝負の時だけOFFにするのもあり。</p></div>
+    <div class="tip"><span class="num">08</span><p>瓶は所持数を増やしてから連続で使う(重ねがけする)と、配当バフの残りスピンをまとめて延長できる。プレミアムボトルを最後に使えば3倍のまま延長される。</p></div>
+  </div>
+</section>
+
+<footer>
+  <p>※本作はutoutoneko個人による制作です。Claude(Anthropic社のAIコーディングアシスタント)を活用して開発しており、企画・世界観・ゲームデザイン・演出設計は全て自分で行い、グラフィック表現を含むコード実装にClaudeのサポートを受けています。</p>
+  <p>非公式ファンメイド・terrariajpサーバー限定配布。Terraria/Re-Logic社とは一切関係ありません。画像・効果音素材はTerraria Wikiより引用。</p>
+</footer>
+
+</div>
+
+<script>
+/*BUILD:THEME_ODDS*/
+
+function fmtPct(p){ return (p*100).toFixed(p<0.001?3:2)+"%"; }
+function fmtOdds(p){ const n=1/p; return "1 / "+ (n>=1000? Math.round(n).toLocaleString() : n.toFixed(1)); }
+
+Object.keys(THEME_ODDS).forEach(key=>{
+  const list = THEME_ODDS[key];
+  const total = list.reduce((s,x)=>s+x.weight,0);
+  const tbody = document.getElementById("odds-"+key);
+  tbody.innerHTML = list.map(s=>{
+    const appear = s.weight/total, lineHit = Math.pow(appear,3);
+    return `<tr>
+      <td>${s.tier}</td>
+      <td>${s.nameJa}<span class="en">${s.nameEn}</span>${s.scatter?`<span class="scatter">★スキャッター</span>`:""}</td>
+      <td class="num">${s.weight}</td>
+      <td class="num">${fmtPct(appear)}</td>
+      <td class="num">${fmtOdds(lineHit)}</td>
+      <td class="num">×${s.mult.toLocaleString()}</td>
+    </tr>`;
+  }).join("");
+});
+
+/*BUILD:ACHIEVEMENTS*/
+document.getElementById("ach-body").innerHTML = ACHIEVEMENTS.map((a,i)=>`<tr>
+  <td class="num">${i+1}</td>
+  <td>${a.ja}<span class="en">${a.en}</span>${a.hidden?'<span class="hiddenbadge">隠し実績</span>':''}</td>
+  <td>${a.cond}</td>
+</tr>`).join("");
+
+// Plain href="#id" anchors resolve against the *parent* page's URL when this document is loaded
+// via an iframe's srcdoc (no base URL of its own) - clicking one would navigate the iframe to
+// the real game page instead of just scrolling. Intercept and scroll manually so this works
+// identically whether the page is opened standalone or embedded in the game's hidden guide.
+document.querySelectorAll('nav.toc a[href^="#"]').forEach(a=>{
+  a.addEventListener('click', function(e){
+    e.preventDefault();
+    const target = document.getElementById(this.getAttribute('href').slice(1));
+    if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+});
+</script>
