@@ -284,10 +284,8 @@ function paintBalance(v){
     <div class="coin" id="coinS"><img class="spr" src="${SPR.coin_silver}" style="width:15px;height:17px">${s}</div>
     <div class="coin" id="coinC"><img class="spr" src="${SPR.coin_copper}" style="width:15px;height:15px">${c}</div>
     <div class="coin" id="coinMedal" title="${state.lang==="en"?"Defender Medals":"防衛メダル"}"><img class="spr" src="${SPR.icon_defendermedal}" style="width:16px;height:16px">${state.defenderMedals||0}</div>
-    ${(state.etherianMana||0)>0 ? `<div class="coin" id="coinMana" title="${state.lang==="en"?"Etherian Mana (click to convert)":"エーテリアンマナ(クリックで変換)"}"><img class="spr" src="${SPR.icon_etherianmana}" style="width:16px;height:16px">${fmtMana(state.etherianMana)}</div>` : ""}
+    ${(state.etherianMana||0)>0 ? `<div class="coin" id="coinMana" title="${state.lang==="en"?"Etherian Mana (convert via the Traveling Merchant)":"エーテリアンマナ(旅商人で交換できる)"}"><img class="spr" src="${SPR.icon_etherianmana}" style="width:16px;height:16px">${fmtMana(state.etherianMana)}</div>` : ""}
   </div>`;
-  const coinManaEl = document.getElementById("coinMana");
-  if(coinManaEl) coinManaEl.onclick = openManaModal;
   if(p>lastCoins.p) document.getElementById("coinP").classList.add("bump");
   if(g>lastCoins.g) document.getElementById("coinG").classList.add("bump");
   if(s>lastCoins.s) document.getElementById("coinS").classList.add("bump");
@@ -645,7 +643,7 @@ function buyShopItem(key){
   saveState(); renderBalance(); renderShop();
   showToast(state.lang==="en" ? `Purchased ${item.nameEn}!` : `${item.nameJa}を購入した!`);
 }
-document.getElementById("shopToggleBtn").onclick=()=>{ renderShop(); renderMinigameHub(); document.getElementById("shopModal").classList.add("show"); };
+document.getElementById("shopToggleBtn").onclick=()=>{ renderShop(); renderExchange(); renderMinigameHub(); document.getElementById("shopModal").classList.add("show"); };
 document.getElementById("shopModalClose").onclick=()=>{ document.getElementById("shopModal").classList.remove("show"); };
 document.getElementById("shopModal").onclick=(e)=>{ if(e.target.id==="shopModal") e.currentTarget.classList.remove("show"); };
 
@@ -1238,7 +1236,8 @@ const MINIGAME_DEFS = [
   { key:"quiz", nameJa:"テラリアクイズ", nameEn:"Terraria Quiz", unlockCost:25, btnId:"quizLaunchBtn", modalId:"quizModal", open:()=>renderQuizIntro() },
   { key:"draw", nameJa:"抽選所", nameEn:"Lucky Draw", unlockCost:35, btnId:"drawLaunchBtn", modalId:"drawModal", open:()=>renderDrawIntro(), unavailable:true },
   { key:"fishing", nameJa:"釣り", nameEn:"Fishing", unlockCost:50, btnId:"fishLaunchBtn", modalId:"fishModal", open:()=>renderFishIntro(), unavailable:true },
-  { key:"coinflip", nameJa:"コインフリップ", nameEn:"Coin Flip", unlockCost:70, btnId:"coinflipLaunchBtn", modalId:"coinflipModal", open:()=>renderCoinflipIntro() },
+  { key:"coinflip", nameJa:"コインフリップ", nameEn:"Coin Flip", unlockCost:70, btnId:"coinflipLaunchBtn", modalId:"coinflipModal", open:()=>renderCoinflipIntro(), unavailable:true,
+    pauseReasonJa:"演出・面白さを見直すため一時停止中", pauseReasonEn:"Paused for a presentation/fun redesign" },
   { key:"roulette", nameJa:"ルーレット", nameEn:"Roulette", unlockCost:100, btnId:"rouletteLaunchBtn", modalId:"rouletteModal", open:()=>renderRouletteIntro(), unavailable:true },
 ];
 // unavailable: 実在するテラリア素材の代役(釣り)、またはテラリア世界観に無い自作絵作り(抽選所の絵文字演出/ルーレット盤)を
@@ -1262,7 +1261,7 @@ function renderMinigameHub(){
 function launchMinigame(def){
   const en = state.lang==="en";
   if(def.unavailable){
-    showToast(en ? "Paused until real Terraria art is ready" : "本物のテラリア素材が揃うまで一時停止中");
+    showToast(en ? (def.pauseReasonEn||"Paused until real Terraria art is ready") : (def.pauseReasonJa||"本物のテラリア素材が揃うまで一時停止中"));
     return;
   }
   const unlocked = !!(state.minigameUnlocked && state.minigameUnlocked[def.key]);
@@ -1273,10 +1272,6 @@ function launchMinigame(def){
     return;
   }
   const name = en?def.nameEn:def.nameJa;
-  const ok = confirm(en
-    ? `Unlock ${name} for ${def.unlockCost} Defender Medals?`
-    : `${name}をディフェンダーメダル${def.unlockCost}枚で解禁しますか?`);
-  if(!ok) return;
   if((state.defenderMedals||0) < def.unlockCost){
     showToast(en?"Not enough Defender Medals":"ディフェンダーのメダルが足りません");
     return;
@@ -1293,32 +1288,41 @@ MINIGAME_DEFS.forEach(def=>{ document.getElementById(def.btnId).onclick=()=>laun
 document.getElementById("rouletteModalClose").onclick=()=>{ document.getElementById("rouletteModal").classList.remove("show"); };
 document.getElementById("rouletteModal").onclick=(e)=>{ if(e.target.id==="rouletteModal") e.currentTarget.classList.remove("show"); };
 
-function renderManaModal(){
+function convertMedalToPlatinum(){
+  if((state.defenderMedals||0) < 1) return false;
+  state.defenderMedals -= 1;
+  state.balance += MEDAL_RATE; // MEDAL_RATE = 1000 platinum worth, mirrors the forward auto-convert rate exactly
+  saveState(); renderBalance();
+  showToast(state.lang==="en" ? "Converted 1 Defender Medal into 1,000 Platinum Coins!" : "ディフェンダーメダル1枚をプラチナ貨1000枚に変換した!");
+  return true;
+}
+function renderExchange(){
   const en = state.lang==="en";
   const mana = state.etherianMana||0;
-  document.getElementById("manaBody").innerHTML = `
-    <p class="quiz-intro-text">${en
-      ? `Defender Medals over ${MEDAL_RESERVE} auto-convert into Etherian Mana at a rate of ${ETHERIAN_MANA_RATE}:1, always leaving ${MEDAL_RESERVE} medals on hand. Convert Mana back into medals anytime you need them.`
-      : `ディフェンダーのメダルは${MEDAL_RESERVE}枚を残して、超過分が${ETHERIAN_MANA_RATE}枚=マナ1として自動変換される。マナはいつでもメダルに戻せる。`}</p>
-    <div class="quiz-progress">${en?"Current Mana":"現在のマナ"}: ${fmtMana(mana)} (${mana.toLocaleString()})</div>
-    <div class="coinflip-stakebtns">
-      ${[1,10,100].filter(n=>n<=mana).map(n=>`<button class="coinflip-optbtn" data-n="${n}">${n} → ${(n*ETHERIAN_MANA_RATE).toLocaleString()}${en?" medals":"枚"}</button>`).join("")}
-      ${mana>0?`<button class="coinflip-optbtn" id="manaConvertAllBtn">${en?"Convert All":"全部変換"}</button>`:""}
+  const medals = state.defenderMedals||0;
+  document.getElementById("exchangeItems").innerHTML = `
+    <div class="shopitem">
+      <img class="spr" src="${SPR.icon_etherianmana}">
+      <div class="shopitem-info">
+        <div class="shopitem-name">${en?"Etherian Mana":"エーテリアンマナ"} (${fmtMana(mana)})</div>
+        <div class="shopitem-desc">${en?`Convert 1 Mana into ${ETHERIAN_MANA_RATE} Defender Medals`:`マナ1を防衛メダル${ETHERIAN_MANA_RATE}枚に交換`}</div>
+      </div>
+      <button class="shopitem-buy" id="exchangeManaBtn" ${mana<1?"disabled":""}>${en?"1 → "+ETHERIAN_MANA_RATE:"1 → "+ETHERIAN_MANA_RATE+"枚"}</button>
     </div>
-    ${mana<=0?`<div class="quiz-progress">${en?"No Mana yet - it builds up automatically as Defender Medals overflow.":"マナはまだ無い。メダルが1000枚を超えると自動的に貯まっていく。"}</div>`:""}
+    <div class="shopitem">
+      <img class="spr" src="${SPR.icon_defendermedal}">
+      <div class="shopitem-info">
+        <div class="shopitem-name">${en?"Defender Medals":"ディフェンダーのメダル"} (${medals})</div>
+        <div class="shopitem-desc">${en?"Convert 1 Medal into 1,000 Platinum Coins":"メダル1枚をプラチナ貨1000枚に交換"}</div>
+      </div>
+      <button class="shopitem-buy" id="exchangeMedalBtn" ${medals<1?"disabled":""}>${en?"1 → 1,000":"1枚 → 1000"}</button>
+    </div>
   `;
-  document.querySelectorAll("#manaBody .coinflip-stakebtns button[data-n]").forEach(btn=>{
-    btn.onclick=()=>{ convertManaToMedals(+btn.dataset.n); renderManaModal(); renderMinigameHub(); };
-  });
-  const allBtn = document.getElementById("manaConvertAllBtn");
-  if(allBtn) allBtn.onclick=()=>{ convertManaToMedals(state.etherianMana||0); renderManaModal(); renderMinigameHub(); };
+  const manaBtn = document.getElementById("exchangeManaBtn");
+  if(manaBtn) manaBtn.onclick=()=>{ convertManaToMedals(1); renderExchange(); renderMinigameHub(); };
+  const medalBtn = document.getElementById("exchangeMedalBtn");
+  if(medalBtn) medalBtn.onclick=()=>{ convertMedalToPlatinum(); renderExchange(); renderMinigameHub(); };
 }
-function openManaModal(){
-  renderManaModal();
-  document.getElementById("manaModal").classList.add("show");
-}
-document.getElementById("manaModalClose").onclick=()=>{ document.getElementById("manaModal").classList.remove("show"); };
-document.getElementById("manaModal").onclick=(e)=>{ if(e.target.id==="manaModal") e.currentTarget.classList.remove("show"); };
 
 document.getElementById("payClose").onclick=()=>{ document.getElementById("payModal").classList.remove("show"); };
 document.getElementById("payModal").onclick=(e)=>{ if(e.target.id==="payModal") e.currentTarget.classList.remove("show"); };

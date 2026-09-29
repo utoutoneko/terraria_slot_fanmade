@@ -219,6 +219,29 @@ check("converting Etherian Mana back to Defender Medals must never exceed Terrar
   assert(afterClamped.medals === 9500, `expected medals clamped to 9500 (8500+1000), got ${afterClamped.medals}`);
   assert(afterClamped.mana === 49, `expected only 1 mana spent (49 left), got ${afterClamped.mana}`);
 });
+check("Traveling Merchant exchange: converts exactly 1 Mana or 1 Medal at a time, buttons disable at zero", async (page) => {
+  await page.evaluate(() => { state.balance = 0; state.defenderMedals = 3; state.etherianMana = 2; saveState(); renderBalance(); });
+  await page.click("#shopToggleBtn");
+  const before = await page.evaluate(() => ({
+    manaDisabled: document.getElementById("exchangeManaBtn").disabled,
+    medalDisabled: document.getElementById("exchangeMedalBtn").disabled,
+  }));
+  assert(!before.manaDisabled && !before.medalDisabled, "both exchange buttons should be enabled when mana and medals are both > 0");
+  await page.click("#exchangeManaBtn");
+  const afterMana = await page.evaluate(() => ({ medals: state.defenderMedals, mana: state.etherianMana, rate: ETHERIAN_MANA_RATE }));
+  assert(afterMana.mana === 1, `expected exactly 1 mana spent per click, got ${2 - afterMana.mana} spent`);
+  assert(afterMana.medals === 3 + afterMana.rate, `expected +${afterMana.rate} medals from converting 1 mana, got ${afterMana.medals}`);
+  await page.click("#exchangeMedalBtn");
+  const afterMedal = await page.evaluate(() => ({ medals: state.defenderMedals, balance: state.balance, medalRate: MEDAL_RATE }));
+  assert(afterMedal.medals === 3 + afterMana.rate - 1, `expected exactly 1 medal spent per click, got balance change medals=${afterMedal.medals}`);
+  assert(afterMedal.balance === afterMedal.medalRate, `expected +1000 platinum (MEDAL_RATE) worth of balance from converting 1 medal, got ${afterMedal.balance}`);
+  await page.evaluate(() => { state.defenderMedals = 0; state.etherianMana = 0; saveState(); renderBalance(); renderExchange(); });
+  const atZero = await page.evaluate(() => ({
+    manaDisabled: document.getElementById("exchangeManaBtn").disabled,
+    medalDisabled: document.getElementById("exchangeMedalBtn").disabled,
+  }));
+  assert(atZero.manaDisabled && atZero.medalDisabled, "both exchange buttons must disable at zero to prevent a negative-balance conversion");
+});
 check("regression: a returning save already past the platinum auto-convert threshold must not crash on load", async (page) => {
   // Found 2026-09-29 via a real player report of saves "breaking" - freeSpinsRemaining/bottleBuffRemaining/
   // bottleBuffMult/kakuhenRemaining/manaPurifyNextSpin/lastRealBet were declared with `let`, so
@@ -314,18 +337,18 @@ check("secret guide loads lazily on the trigger word and its links don't navigat
   const achCount = await frame.evaluate(() => document.querySelectorAll("#ach-body tr").length);
   assert(achCount === 108, `expected 108 achievement rows in the guide, got ${achCount}`);
 });
-check("minigame unlock gate: locked by default, costs medals once via a confirm dialog, then stays unlocked", async (page) => {
+check("minigame unlock gate: locked by default, costs medals once with no confirm dialog, then stays unlocked", async (page) => {
   await page.evaluate(() => { state.defenderMedals = 10; saveState(); renderBalance(); });
   await page.click("#shopToggleBtn");
   const lockedBefore = await page.evaluate(() => document.getElementById("quizLaunchBtn").classList.contains("locked"));
   assert(lockedBefore, "quiz should be locked by default on a fresh save");
-  // Not enough medals for the 25-medal unlock cost: confirming should not open the game or deduct medals.
+  // Not enough medals for the 25-medal unlock cost: clicking must not open the game or deduct medals.
   await page.click("#quizLaunchBtn");
   const stillLockedAndUnspent = await page.evaluate(() => ({ medals: state.defenderMedals, unlocked: !!(state.minigameUnlocked && state.minigameUnlocked.quiz) }));
-  assert(stillLockedAndUnspent.medals === 10 && !stillLockedAndUnspent.unlocked, "declining/failing the unlock must not spend medals or unlock the game");
+  assert(stillLockedAndUnspent.medals === 10 && !stillLockedAndUnspent.unlocked, "failing the unlock (not enough medals) must not spend medals or unlock the game");
   await page.evaluate(() => { state.defenderMedals = 100; saveState(); renderBalance(); });
   await page.click("#shopToggleBtn");
-  await page.click("#quizLaunchBtn"); // dialog auto-accepted by freshPage's page.on("dialog", d => d.accept())
+  await page.click("#quizLaunchBtn"); // no confirm dialog anymore - unlocking is immediate
   await page.waitForSelector("#quizModal.show", { state: "visible" });
   const afterUnlock = await page.evaluate(() => ({ medals: state.defenderMedals, unlocked: !!(state.minigameUnlocked && state.minigameUnlocked.quiz) }));
   assert(afterUnlock.medals === 75, `expected 100 - 25 (unlock cost) = 75 medals, got ${afterUnlock.medals}`);
@@ -335,18 +358,18 @@ check("minigame unlock gate: locked by default, costs medals once via a confirm 
   const lockedAfter = await page.evaluate(() => document.getElementById("quizLaunchBtn").classList.contains("locked"));
   assert(!lockedAfter, "quiz launch button should lose its locked styling once unlocked");
 });
-check("minigames using non-Terraria placeholder art (fishing/draw/roulette) are paused; quiz/coinflip stay playable", async (page) => {
+check("minigames fishing/draw/roulette/coinflip are paused; only quiz stays playable", async (page) => {
   await page.evaluate(() => { state.defenderMedals = 100000; saveState(); renderBalance(); });
   await page.click("#shopToggleBtn");
   const flags = await page.evaluate(() => ({
     fishing: document.getElementById("fishLaunchBtn").disabled,
     draw: document.getElementById("drawLaunchBtn").disabled,
     roulette: document.getElementById("rouletteLaunchBtn").disabled,
-    quiz: document.getElementById("quizLaunchBtn").disabled,
     coinflip: document.getElementById("coinflipLaunchBtn").disabled,
+    quiz: document.getElementById("quizLaunchBtn").disabled,
   }));
-  assert(flags.fishing && flags.draw && flags.roulette, "fishing/draw/roulette must stay disabled while they use non-Terraria placeholder art");
-  assert(!flags.quiz && !flags.coinflip, "quiz and coinflip use real Terraria material (or none) and must remain playable");
+  assert(flags.fishing && flags.draw && flags.roulette && flags.coinflip, "fishing/draw/roulette (non-Terraria placeholder art) and coinflip (paused for a redesign) must stay disabled");
+  assert(!flags.quiz, "quiz has no graphical assets to fake and must remain playable");
   await page.evaluate(() => document.getElementById("fishLaunchBtn").click());
   const stillClosed = await page.evaluate(() => !document.getElementById("fishModal").classList.contains("show"));
   assert(stillClosed, "a paused minigame's button is natively disabled and must not open its modal even if force-clicked");
@@ -431,7 +454,7 @@ check("lucky draw (kuji/gacha/garapon unified): costs medals, a forced jackpot p
   assert(await page.evaluate(() => !!state.achievements.drawJackpot), "drawJackpot achievement did not unlock");
 });
 check("coin flip: chained wins compound the pot at x1.9, a loss wipes it, cash-out banks the medals", async (page) => {
-  await page.evaluate(() => { state.defenderMedals = 50; state.minigameUnlocked = { coinflip: true }; saveState(); renderBalance(); });
+  await page.evaluate(() => { state.defenderMedals = 50; state.minigameUnlocked = { coinflip: true }; MINIGAME_DEFS.find((d) => d.key === "coinflip").unavailable = false; saveState(); renderBalance(); });
   await page.click("#shopToggleBtn");
   await page.click("#coinflipLaunchBtn");
   await page.waitForSelector(".coinflip-stakebtns button", { state: "visible" });

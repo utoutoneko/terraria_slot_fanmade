@@ -51,7 +51,6 @@ document.getElementById("bbIcon").src = SPR.deco_bottle;
 document.getElementById("bbIconEn").src = SPR.deco_bottle;
 document.getElementById("fsIcon").src = SPR.present_chest;
 document.getElementById("fsIconEn").src = SPR.present_chest;
-document.getElementById("manaIconBig").src = SPR.icon_etherianmana;
 
 document.getElementById("dirtTex").style.backgroundImage = `url(${SPR.wall_dirt})`;
 document.getElementById("stoneTex").style.backgroundImage = `url(${SPR.wall_stone})`;
