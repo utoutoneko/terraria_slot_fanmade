@@ -701,7 +701,7 @@ const QUIZ_QUESTIONS = [
     {ja:"天気を予報する", en:"Forecasting the weather"},
     {ja:"ペットを配布する", en:"Handing out pets"}]},
   {qJa:"旅商人(Traveling Merchant)の出現の仕方は?", qEn:"How does the Traveling Merchant NPC appear?", choices:[
-    {ja:"空き家があればランダムな日に一時的に訪れる", en:"Randomly visits for a day if you have a vacant house", correct:true},
+    {ja:"他のNPCが2人以上いれば低確率で1日だけ訪れる(家は不要)", en:"Randomly visits for a day if 2+ other NPCs live in the world (no house needed)", correct:true},
     {ja:"特定のボスを倒すと出現する", en:"Only appears after defeating a specific boss"},
     {ja:"夜にしか出ない", en:"Only appears at night"},
     {ja:"一度来たらずっと定住する", en:"Permanently settles once it arrives"}]},
