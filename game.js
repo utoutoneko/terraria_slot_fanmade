@@ -681,10 +681,10 @@ const QUIZ_QUESTIONS = [
     {ja:"雪原", en:"The Snow biome"},
     {ja:"普通の洞窟", en:"An ordinary cavern"}]},
   {qJa:"ゼニス(Zenith)の合成に使わない剣は?", qEn:"Which sword is NOT used to craft the Zenith?", choices:[
-    {ja:"銅の剣(コッパーブロードソード)", en:"The Copper Broadsword", correct:true},
-    {ja:"ナイツエッジ系の剣", en:"A Night's Edge-line sword"},
-    {ja:"スターラース", en:"The Star Wrath"},
-    {ja:"ミャウメア", en:"The Meowmere"}]},
+    {ja:"トゥルー・エクスカリバー", en:"The True Excalibur", correct:true},
+    {ja:"ホースマンズブレード", en:"The Horseman's Blade"},
+    {ja:"シードラー", en:"The Seedler"},
+    {ja:"インフラックスウェイバー", en:"The Influx Waver"}]},
   {qJa:"ディフェンダーのメダルの1スタック上限は?", qEn:"What is the stack cap for Defender Medals?", choices:[
     {ja:"9999枚", en:"9999", correct:true},
     {ja:"999枚", en:"999"},
