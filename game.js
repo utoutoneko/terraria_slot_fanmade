@@ -222,13 +222,26 @@ function addDefenderMedals(n){
       : `ディフェンダーメダルが変換され、エーテリアンマナ+${gained}!`);
   }
 }
+const MEDAL_STACK_CAP = 9999; // Terraria本編のディフェンダーメダル実在スタック上限。マナからの手動変換だけはこれを超えて渡せてしまうため、ここでクランプする(自動蓄積側はaddDefenderMedalsが1000枚台に保つので実質到達しない)。
 function convertManaToMedals(amount){
-  const mana = Math.floor(amount);
-  if(mana<=0 || mana>(state.etherianMana||0)) return false;
+  const requested = Math.floor(amount);
+  const en = state.lang==="en";
+  if(requested<=0 || requested>(state.etherianMana||0)) return false;
+  const currentMedals = state.defenderMedals||0;
+  const room = MEDAL_STACK_CAP - currentMedals;
+  if(room < ETHERIAN_MANA_RATE){
+    showToast(en ? `Defender Medals are already near the ${MEDAL_STACK_CAP} stack cap` : `ディフェンダーのメダルが上限(${MEDAL_STACK_CAP}枚)に近く、これ以上変換できない`);
+    return false;
+  }
+  const mana = Math.min(requested, Math.floor(room/ETHERIAN_MANA_RATE));
   state.etherianMana -= mana;
-  state.defenderMedals = (state.defenderMedals||0) + mana*ETHERIAN_MANA_RATE;
+  state.defenderMedals = currentMedals + mana*ETHERIAN_MANA_RATE;
   saveState(); renderBalance();
-  showToast(state.lang==="en" ? `Converted ${mana} Etherian Mana into ${mana*ETHERIAN_MANA_RATE} Defender Medals!` : `エーテリアンマナ${mana}を防衛メダル${mana*ETHERIAN_MANA_RATE}枚に変換した!`);
+  if(mana < requested){
+    showToast(en ? `Converted ${mana} Mana into ${mana*ETHERIAN_MANA_RATE} medals (capped at ${MEDAL_STACK_CAP})` : `メダル上限(${MEDAL_STACK_CAP}枚)までマナ${mana}分だけ変換した`);
+  } else {
+    showToast(en ? `Converted ${mana} Etherian Mana into ${mana*ETHERIAN_MANA_RATE} Defender Medals!` : `エーテリアンマナ${mana}を防衛メダル${mana*ETHERIAN_MANA_RATE}枚に変換した!`);
+  }
   return true;
 }
 function fmtMana(n){

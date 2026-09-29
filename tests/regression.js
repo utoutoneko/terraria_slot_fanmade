@@ -204,6 +204,21 @@ check("Defender Medals auto-convert overflow into Etherian Mana, always leaving 
   const failedConvert = await page.evaluate(() => convertManaToMedals(99));
   assert(failedConvert === false, "converting more mana than owned should fail rather than go negative");
 });
+check("converting Etherian Mana back to Defender Medals must never exceed Terraria's real 9999 stack cap", async (page) => {
+  await page.evaluate(() => { state.defenderMedals = 9000; state.etherianMana = 50; saveState(); renderBalance(); });
+  const partial = await page.evaluate(() => convertManaToMedals(50));
+  const afterPartial = await page.evaluate(() => ({ medals: state.defenderMedals, mana: state.etherianMana }));
+  // room = 9999-9000 = 999, only floor(999/1000)=0 mana fit -> should refuse outright
+  assert(partial === false, "converting when there isn't room for even 1 mana's worth of medals should fail");
+  assert(afterPartial.medals === 9000 && afterPartial.mana === 50, "a refused conversion must not touch medals or mana");
+  await page.evaluate(() => { state.defenderMedals = 8500; saveState(); renderBalance(); });
+  const clamped = await page.evaluate(() => convertManaToMedals(50));
+  const afterClamped = await page.evaluate(() => ({ medals: state.defenderMedals, mana: state.etherianMana }));
+  // room = 9999-8500 = 1499 -> only 1 mana (1000 medals) fits, not the requested 50
+  assert(clamped === true, "a conversion that partially fits should still succeed for the portion that fits");
+  assert(afterClamped.medals === 9500, `expected medals clamped to 9500 (8500+1000), got ${afterClamped.medals}`);
+  assert(afterClamped.mana === 49, `expected only 1 mana spent (49 left), got ${afterClamped.mana}`);
+});
 check("regression: a returning save already past the platinum auto-convert threshold must not crash on load", async (page) => {
   // Found 2026-09-29 via a real player report of saves "breaking" - freeSpinsRemaining/bottleBuffRemaining/
   // bottleBuffMult/kakuhenRemaining/manaPurifyNextSpin/lastRealBet were declared with `let`, so
