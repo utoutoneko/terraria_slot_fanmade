@@ -204,6 +204,27 @@ check("Defender Medals auto-convert overflow into Etherian Mana, always leaving 
   const failedConvert = await page.evaluate(() => convertManaToMedals(99));
   assert(failedConvert === false, "converting more mana than owned should fail rather than go negative");
 });
+check("regression: a returning save already past the platinum auto-convert threshold must not crash on load", async (page) => {
+  // Found 2026-09-29 via a real player report of saves "breaking" - freeSpinsRemaining/bottleBuffRemaining/
+  // bottleBuffMult/kakuhenRemaining/manaPurifyNextSpin/lastRealBet were declared with `let`, so
+  // saveState()'s `typeof x!=="undefined"` guard (meant to fall back to state.x before game.js finishes
+  // initializing) sat in the temporal dead zone instead of safely evaluating to "undefined", and threw
+  // a ReferenceError. This fired for real whenever checkPlatinumAutoConvert() ran from the very first
+  // renderBalance() call in game.js's own init sequence (line ~301) - which happens for any save whose
+  // balance is already at/above the 10,000-platinum auto-convert threshold, i.e. exactly the returning
+  // whale-tier players this game's RTP curve is designed to produce. The crash was silent (uncaught,
+  // pre-console-listener) and halted the rest of that script's top-level init, which is what "breaks and
+  // stops responding" looked like in the wild. Fixed by switching those six to `var` (hoisted as
+  // `undefined`, never TDZ). This check sets a huge balance directly into localStorage *before* the page
+  // ever loads, so the crash-prone code path runs during real page init, not a later evaluate() call.
+  const hugeSave = { balance: 1e18, defenderMedals: 99999999, etherianMana: 123456789, achievements: {}, themeUnlocked: { mimic: true, slime: true, zombie: true, zenith: true }, activeTheme: "mimic" };
+  await page.evaluate(({ key, obj }) => { localStorage.setItem(key, JSON.stringify(obj)); }, { key: SAVE_KEY, obj: hugeSave });
+  await page.reload();
+  await page.waitForTimeout(500);
+  assert(page.__errors.length === 0, `loading a save already past the auto-convert threshold must not throw, got: ${page.__errors.join(" | ")}`);
+  const balance = await page.evaluate(() => state.balance);
+  assert(typeof balance === "number" && !Number.isNaN(balance), `state.balance should be a real number after load, got ${balance}`);
+});
 check("Zenith line win and assemble bonus pay the exact configured multipliers", async (page) => {
   await page.evaluate(() => {
     state.defenderMedals = 300; state.themeUnlocked = { mimic: true, slime: true, zombie: true, zenith: true };

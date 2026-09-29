@@ -89,10 +89,16 @@ const ZENITH_ASSEMBLE_MULT = 17500; // flat bet multiplier when all 9 Zenith swo
 // Restored from state (not just defaulted to 0) so an in-progress bonus round, free-spin streak
 // or bottle buff survives a tab refresh instead of silently vanishing - saveState() below keeps
 // these three synced back into state on every save.
-let freeSpinsRemaining = state.freeSpinsRemaining||0;
-let bottleBuffRemaining = state.bottleBuffRemaining||0;
-let bottleBuffMult = state.bottleBuffMult||2;
-let kakuhenRemaining = state.kakuhenRemaining||0;
+// var (not let) is deliberate here: saveState() in audio_data.js reads these back via a
+// `typeof x!=="undefined"` guard so an early save (e.g. checkPlatinumAutoConvert firing on the
+// very first renderBalance() call for a returning player already over the auto-convert threshold)
+// falls back to state.x instead of crashing. `let` puts the guard itself in the temporal dead zone
+// until this exact line runs, throwing "not defined" instead of returning "undefined" - a real bug
+// that broke the game on load for any player already past this net worth (found 2026-09-29).
+var freeSpinsRemaining = state.freeSpinsRemaining||0;
+var bottleBuffRemaining = state.bottleBuffRemaining||0;
+var bottleBuffMult = state.bottleBuffMult||2;
+var kakuhenRemaining = state.kakuhenRemaining||0;
 function updateKakuUI(){
   const on = kakuhenRemaining>0;
   kakuBadge.classList.toggle("show", on);
@@ -130,7 +136,7 @@ function updateBottleBuffBadge(){
 // which is now reachable since freeSpinsRemaining survives a reload (see saveState()). The old
 // "*SILVER" here was a latent bug (100x too large) that stayed dormant only because this path
 // used to be unreachable before that persistence fix.
-let lastRealBet = state.lastRealBet || BET_STEPS[betIndex];
+var lastRealBet = state.lastRealBet || BET_STEPS[betIndex]; // var: see note above freeSpinsRemaining
 
 let displayedJackpot = state.jackpotPool;
 let jackpotAnimGen=0;
@@ -333,7 +339,7 @@ updateDayNight();
 setInterval(updateDayNight, 1000);
 
 // ---- Falling star -> mana system ----
-let manaPurifyNextSpin = !!state.manaPurifyNextSpin;
+var manaPurifyNextSpin = !!state.manaPurifyNextSpin; // var: see note above freeSpinsRemaining (this is the one that actually crashed)
 function isCurrentlyNight(){
   const phase = (Date.now() % DAYNIGHT_CYCLE_MS) / DAYNIGHT_CYCLE_MS;
   return phase >= 0.5;

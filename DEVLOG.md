@@ -2,6 +2,21 @@
 
 このファイルは実装の節目ごとに追記していく開発記録。詳しい経緯は`PROJECT_BRIEF.md`、次のやることは`README.md`を参照。
 
+## 2026-09-29: 【重大バグ修正】高額所持金のセーブが読み込み時に必ずクラッシュする不具合
+
+本人および他プレイヤーから「セーブデータが壊れて動かなくなる」報告を受けて調査、再現・特定・修正。
+
+### 原因
+`freeSpinsRemaining`/`bottleBuffRemaining`/`bottleBuffMult`/`kakuhenRemaining`/`manaPurifyNextSpin`/`lastRealBet`の6変数が`let`宣言だった。`saveState()`(audio_data.js)側はこれらを`typeof x!=="undefined" ? x : state.x`という「game.jsの初期化がまだそこまで進んでいなくてもクラッシュしないためのガード」で読んでいるが、`let`は宣言文に到達するまで一時的死角域(TDZ)に入るため、`typeof`であってもReferenceErrorを投げてしまう。
+
+このガードが実際に踏まれるのは、`renderBalance()`(game.js冒頭の初期化シーケンスで最初に呼ばれる、`manaPurifyNextSpin`の宣言行より前)経由で`checkPlatinumAutoConvert()`が発火し、かつ`state.balance`が白金貨10,000枚相当の自動変換しきい値に既に達している場合。つまり**プラチナ自動変換しきい値を超えるくらい遊び込んだプレイヤーが、ページを再読み込みするたびに必ずクラッシュする**という、このゲームの設計(還元率を上げて資産を増やす)が直接誘発する重大バグだった。エラーはconsoleリスナー設置より前の同期例外で無警告のまま初期化を止めるため、プレイヤー視点では「セーブを開いたら壊れて動かなくなった」に見える。
+
+### 修正
+該当6変数を`let`→`var`に変更(`var`はスクリプト先頭で`undefined`として巻き上げられるためTDZが存在しない)。ロジックは無変更、宣言キーワードのみの修正。
+
+### 検証
+Playwrightで`localStorage`に「balance: 1e18」等の極端なセーブを直接書き込んでからページを読み込み、修正前は`ReferenceError: manaPurifyNextSpin is not defined`(スタックトレース: `saveState`→`checkPlatinumAutoConvert`→`renderBalance`→game.js初期化行)で確実にクラッシュすることを確認、修正後はエラーなくバランス表示まで正常に完了することを確認。旧セーブ形式・不正な`themeUnlocked`/`minigameUnlocked`・負数/NaNメダル・truncatedなJSON文字列など計7パターンでも全てエラー無し。`tests/regression.js`に本バグの恒久的な回帰テストを追加、全32項目成功。
+
 ## 2026-09-28(9回目): エーテリアンマナ実装、ミニゲーム解禁ゲート追加、瓶バフ表示バグ2件修正
 
 ### バグ修正
