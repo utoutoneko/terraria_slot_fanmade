@@ -320,6 +320,22 @@ check("minigame unlock gate: locked by default, costs medals once via a confirm 
   const lockedAfter = await page.evaluate(() => document.getElementById("quizLaunchBtn").classList.contains("locked"));
   assert(!lockedAfter, "quiz launch button should lose its locked styling once unlocked");
 });
+check("minigames using non-Terraria placeholder art (fishing/draw/roulette) are paused; quiz/coinflip stay playable", async (page) => {
+  await page.evaluate(() => { state.defenderMedals = 100000; saveState(); renderBalance(); });
+  await page.click("#shopToggleBtn");
+  const flags = await page.evaluate(() => ({
+    fishing: document.getElementById("fishLaunchBtn").disabled,
+    draw: document.getElementById("drawLaunchBtn").disabled,
+    roulette: document.getElementById("rouletteLaunchBtn").disabled,
+    quiz: document.getElementById("quizLaunchBtn").disabled,
+    coinflip: document.getElementById("coinflipLaunchBtn").disabled,
+  }));
+  assert(flags.fishing && flags.draw && flags.roulette, "fishing/draw/roulette must stay disabled while they use non-Terraria placeholder art");
+  assert(!flags.quiz && !flags.coinflip, "quiz and coinflip use real Terraria material (or none) and must remain playable");
+  await page.evaluate(() => document.getElementById("fishLaunchBtn").click());
+  const stillClosed = await page.evaluate(() => !document.getElementById("fishModal").classList.contains("show"));
+  assert(stillClosed, "a paused minigame's button is natively disabled and must not open its modal even if force-clicked");
+});
 check("quiz minigame: costs medals, the per-question timer counts a timeout as wrong, pays out correctly, and blocks play when broke", async (page) => {
   await page.evaluate(() => { state.defenderMedals = 50; state.minigameUnlocked = { quiz: true }; saveState(); renderBalance(); });
   await page.click("#shopToggleBtn");
@@ -365,7 +381,7 @@ check("quiz minigame: a genuine 5/5 (no timeouts) unlocks the quizPerfect achiev
   assert(await page.evaluate(() => !!state.achievements.quizPerfect), "quizPerfect achievement did not unlock on a real 5/5 round");
 });
 check("fishing minigame: costs medals, a forced-mythic catch pays the right amount, and a missed bite still costs the entry fee", async (page) => {
-  await page.evaluate(() => { state.defenderMedals = 50; state.minigameUnlocked = { fishing: true }; saveState(); renderBalance(); });
+  await page.evaluate(() => { state.defenderMedals = 50; state.minigameUnlocked = { fishing: true }; MINIGAME_DEFS.find((d) => d.key === "fishing").unavailable = false; saveState(); renderBalance(); });
   await page.click("#shopToggleBtn");
   await page.click("#fishLaunchBtn");
   await page.waitForSelector("#fishCastBtn", { state: "visible" });
@@ -388,7 +404,7 @@ check("fishing minigame: costs medals, a forced-mythic catch pays the right amou
   assert(await page.evaluate(() => !!state.achievements.fishMythic), "fishMythic achievement did not unlock");
 });
 check("lucky draw (kuji/gacha/garapon unified): costs medals, a forced jackpot pays the right amount", async (page) => {
-  await page.evaluate(() => { state.defenderMedals = 50; state.minigameUnlocked = { draw: true }; saveState(); renderBalance(); });
+  await page.evaluate(() => { state.defenderMedals = 50; state.minigameUnlocked = { draw: true }; MINIGAME_DEFS.find((d) => d.key === "draw").unavailable = false; saveState(); renderBalance(); });
   await page.click("#shopToggleBtn");
   await page.click("#drawLaunchBtn");
   await page.waitForSelector("#drawStartBtn", { state: "visible" });
@@ -430,7 +446,7 @@ check("coin flip: chained wins compound the pot at x1.9, a loss wipes it, cash-o
   assert(medalsFinal === afterStake2, `a loss should not deduct further beyond the already-staked amount (${afterStake2}), got ${medalsFinal}`);
 });
 check("roulette: matches real European-wheel color mapping and pays out red/black bets 1:1", async (page) => {
-  await page.evaluate(() => { state.defenderMedals = 50; state.minigameUnlocked = { roulette: true }; saveState(); renderBalance(); });
+  await page.evaluate(() => { state.defenderMedals = 50; state.minigameUnlocked = { roulette: true }; MINIGAME_DEFS.find((d) => d.key === "roulette").unavailable = false; saveState(); renderBalance(); });
   await page.click("#shopToggleBtn");
   await page.click("#rouletteLaunchBtn");
   await page.waitForSelector(".roulette-stake button", { state: "visible" });

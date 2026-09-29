@@ -1223,14 +1223,23 @@ function finishRoulette(){
 // 「メダルで1回だけ解禁」方式に変更。高価にすることでメダルの使い道・エンドコンテンツ感を強化。
 const MINIGAME_DEFS = [
   { key:"quiz", nameJa:"テラリアクイズ", nameEn:"Terraria Quiz", unlockCost:25, btnId:"quizLaunchBtn", modalId:"quizModal", open:()=>renderQuizIntro() },
-  { key:"draw", nameJa:"抽選所", nameEn:"Lucky Draw", unlockCost:35, btnId:"drawLaunchBtn", modalId:"drawModal", open:()=>renderDrawIntro() },
-  { key:"fishing", nameJa:"釣り", nameEn:"Fishing", unlockCost:50, btnId:"fishLaunchBtn", modalId:"fishModal", open:()=>renderFishIntro() },
+  { key:"draw", nameJa:"抽選所", nameEn:"Lucky Draw", unlockCost:35, btnId:"drawLaunchBtn", modalId:"drawModal", open:()=>renderDrawIntro(), unavailable:true },
+  { key:"fishing", nameJa:"釣り", nameEn:"Fishing", unlockCost:50, btnId:"fishLaunchBtn", modalId:"fishModal", open:()=>renderFishIntro(), unavailable:true },
   { key:"coinflip", nameJa:"コインフリップ", nameEn:"Coin Flip", unlockCost:70, btnId:"coinflipLaunchBtn", modalId:"coinflipModal", open:()=>renderCoinflipIntro() },
-  { key:"roulette", nameJa:"ルーレット", nameEn:"Roulette", unlockCost:100, btnId:"rouletteLaunchBtn", modalId:"rouletteModal", open:()=>renderRouletteIntro() },
+  { key:"roulette", nameJa:"ルーレット", nameEn:"Roulette", unlockCost:100, btnId:"rouletteLaunchBtn", modalId:"rouletteModal", open:()=>renderRouletteIntro(), unavailable:true },
 ];
+// unavailable: 実在するテラリア素材の代役(釣り)、またはテラリア世界観に無い自作絵作り(抽選所の絵文字演出/ルーレット盤)を
+// 一時停止中の印。正式な素材が揃うまでhubで押せない状態にしておく(2026-09-29)。
 function renderMinigameHub(){
   MINIGAME_DEFS.forEach(def=>{
     const btn = document.getElementById(def.btnId);
+    if(def.unavailable){
+      btn.classList.add("locked","unavailable");
+      btn.disabled = true;
+      const costEl = btn.querySelector(".tcnum");
+      if(costEl) costEl.textContent = state.lang==="en" ? "soon" : "準備中";
+      return;
+    }
     const unlocked = !!(state.minigameUnlocked && state.minigameUnlocked[def.key]);
     btn.classList.toggle("locked", !unlocked);
     const costEl = btn.querySelector(".tcnum");
@@ -1239,6 +1248,10 @@ function renderMinigameHub(){
 }
 function launchMinigame(def){
   const en = state.lang==="en";
+  if(def.unavailable){
+    showToast(en ? "Paused until real Terraria art is ready" : "本物のテラリア素材が揃うまで一時停止中");
+    return;
+  }
   const unlocked = !!(state.minigameUnlocked && state.minigameUnlocked[def.key]);
   document.getElementById("shopModal").classList.remove("show");
   if(unlocked){
@@ -1418,7 +1431,7 @@ function renderAchBubble(){
   achPage = Math.max(0, Math.min(achPage, pageCount-1));
   let html = `<div class="ach-header">
     <span class="ach-title">${state.lang==="en"?`Achievements (${unlockedCount}/${ACHIEVEMENT_DEFS.length})`:`実績 (${unlockedCount}/${ACHIEVEMENT_DEFS.length})`}</span>
-    <button class="ach-sharebtn" id="achShareBtn" title="${state.lang==="en"?"Make a shareable stats card":"シェア用カードを作る"}">📤</button>
+    <button class="ach-sharebtn" id="achShareBtn" title="${state.lang==="en"?"Make a shareable stats card":"シェア用カードを作る"}"><img class="spr" src="${SPR.icon_frame}"></button>
   </div>`;
   html += `<div class="ach-list">`;
   ACHIEVEMENT_DEFS.slice(achPage*ACH_PAGE_SIZE, achPage*ACH_PAGE_SIZE+ACH_PAGE_SIZE).forEach(d=>{
